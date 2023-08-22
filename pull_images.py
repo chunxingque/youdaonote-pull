@@ -1,0 +1,279 @@
+import re
+import os
+import glob
+from typing import Tuple
+import requests
+from urllib import parse
+
+from urllib.parse import urlparse
+from youDaoNoteApi import YoudaoNoteApi
+from public import covert_config
+
+REGEX_IMAGE_URL = re.compile(r'!\[.*?\]\((.*?note\.youdao\.com.*?)\)')
+REGEX_ATTACH = re.compile(r'\[(.*?)\]\(((http|https)://note\.youdao\.com.*?)\)')
+MARKDOWN_SUFFIX = '.md'
+NOTE_SUFFIX = '.note'
+# 有道云笔记的图片地址
+# IMAGES = 'images'
+IMAGES = 'attachments'
+# 有道云笔记的附件地址
+ATTACH = 'attachments'
+CONFIG_PATH = 'config.json'
+
+
+class PullImages():
+    def __init__(self, youdaonote_api=None, smms_secret_token: str=None, is_relative_path: bool=None):
+        self.youdaonote_api = youdaonote_api
+        self.smms_secret_token = smms_secret_token
+        self.is_relative_path = is_relative_path  # 是否使用相对路径
+        if not self.smms_secret_token and not self.is_relative_path:
+            self.load_config()
+        if not self.youdaonote_api:
+            self.login()
+    
+    def migration_ydnote_url(self, file_path):
+        """
+        迁移有道云笔记文件 URL
+        :param file_path:
+        :return:
+        """
+        with open(file_path, 'rb') as f:
+            content = f.read().decode('utf-8')
+
+        # 图片
+        image_urls = REGEX_IMAGE_URL.findall(content)
+        if len(image_urls) > 0:
+            print('正在转换有道云笔记「{}」中的有道云图片链接...'.format(file_path))
+        for index,image_url in enumerate(image_urls):
+            image_path = self._get_new_image_path(file_path, image_url,index)
+            if image_url == image_path:
+                continue
+            #将绝对路径替换为相对路径，实现满足 Obsidian 格式要求
+            #将 image_path 路径中 images 之前的路径去掉，只保留以 images 开头的之后的路径
+            if self.is_relative_path:
+                image_path = image_path[image_path.find(IMAGES):]
+            
+            content = content.replace(image_url, image_path)
+
+        # 附件
+        attach_name_and_url_list = REGEX_ATTACH.findall(content)
+        if len(attach_name_and_url_list) > 0:
+            print('正在转换有道云笔记「{}」中的有道云附件链接...'.format(file_path))
+        for attach_name_and_url in attach_name_and_url_list:
+            attach_url = attach_name_and_url[1]
+            attach_path = self._download_attach_url(file_path, attach_url, attach_name_and_url[0])
+            if not attach_path:
+                continue
+            # 将 attach_path 路径中 attachments 之前的路径去掉，只保留以 attachments 开头的之后的路径
+            if self.is_relative_path:
+                attach_path = attach_path[attach_path.find(ATTACH):]
+            content = content.replace(attach_url, attach_path)
+
+        with open(file_path, 'wb') as f:
+            f.write(content.encode())
+        return
+
+    def _get_new_image_path(self, file_path, image_url,index) -> str:
+        """
+        将图片链接转换为新的链接
+        :param file_path:
+        :param image_url:
+        :return: new_image_path
+        """
+        # 当 smms_secret_token 为空（不上传到 SM.MS），下载到图片到本地
+        if not self.smms_secret_token:
+            image_path = self._download_image_url(file_path, image_url,index)
+            return image_path or image_url
+
+        # smms_secret_token 不为空，上传到 SM.MS
+        new_file_url, error_msg = ImageUpload.upload_to_smms(youdaonote_api=self.youdaonote_api, image_url=image_url,
+                                                             smms_secret_token=self.smms_secret_token)
+        # 如果上传失败，仍下载到本地
+        if not error_msg:
+            return new_file_url
+        print(error_msg)
+        image_path = self._download_image_url(file_path, image_url,index)
+        return image_path or image_url
+    
+    def _download_image_url(self, file_path, url,index) -> str:
+        """
+        下载文件到本地，返回本地路径
+        :param file_path:
+        :param url:
+        :param attach_name:
+        :return:  path
+        """
+        try:
+            response = self.youdaonote_api.http_get(url)
+        except requests.exceptions.ProxyError as err:
+            error_msg = '网络错误，「{}」下载失败。错误提示：{}'.format(url, format(err))
+            print(error_msg)
+            return ''
+
+        content_type = response.headers.get('Content-Type')
+        file_type = '图片'
+        if response.status_code != 200 or not content_type:
+            error_msg = '下载「{}」失败！{}可能已失效，可浏览器登录有道云笔记后，查看{}是否能正常加载'.format(url, file_type,
+                                                                           file_type)
+            print(error_msg)
+            return ''
+
+        # 默认下载图片到 images 文件夹
+        file_dirname = IMAGES
+        # 后缀 png 和 jpeg 后可能出现 ; `**.png;`, 原因未知
+        content_type_arr = content_type.split('/')
+        file_suffix = '.' + content_type_arr[1].replace(';', '') if len(content_type_arr) == 2 else "jpg"
+        local_file_dir = os.path.join(os.path.dirname(file_path),file_dirname)
+
+        if not os.path.exists(local_file_dir):
+            os.mkdir(local_file_dir)
+            
+        file_name = os.path.basename(os.path.splitext(file_path)[0])
+        #请求后的真实的URL中才有东西
+        realUrl = parse.parse_qs(urlparse(response.url).query)
+        if realUrl:
+            # dict 不为空再去取 download
+            read_file_name = realUrl['download'][0]
+            file_suffix = '.' + read_file_name.split('.')[-1]
+            file_name = os.path.basename(os.path.splitext(file_path)[0]) + '_image_' + str(index) + file_suffix 
+        else:
+            file_name = os.path.basename(os.path.splitext(file_path)[0]) + '_image_' + str(index) + file_suffix
+        
+        local_file_path = os.path.join(local_file_dir, file_name)
+        # 使md附件或者图片的路径分隔符为"/"
+        local_file_path = local_file_path.replace('\\', '/')
+        
+        try:
+            with open(local_file_path, 'wb') as f:
+                f.write(response.content)  # response.content 本身就为字节类型
+            print('已将{}「{}」转换为「{}」'.format(file_type, url, local_file_path))
+        except:
+            error_msg = '{} {}有误！'.format(url, file_type)
+            print(error_msg)
+            return ''
+        
+        return local_file_path
+    
+        
+
+    def _download_attach_url(self, file_path, url,attach_name=None) -> str:
+        """
+        下载文件到本地，返回本地路径
+        :param file_path:
+        :param url:
+        :param attach_name:
+        :return:  path
+        """
+        try:
+            response = self.youdaonote_api.http_get(url)
+        except requests.exceptions.ProxyError as err:
+            error_msg = '网络错误，「{}」下载失败。错误提示：{}'.format(url, format(err))
+            print(error_msg)
+            return ''
+
+        content_type = response.headers.get('Content-Type')
+        file_type = '附件'
+        if response.status_code != 200 or not content_type:
+            error_msg = '下载「{}」失败！{}可能已失效，可浏览器登录有道云笔记后，查看{}是否能正常加载'.format(url, file_type,file_type)
+            print(error_msg)
+            return ''
+
+        file_dirname = ATTACH
+        file_suffix = attach_name
+        local_file_dir = os.path.join(os.path.dirname(file_path),file_dirname)
+
+        if not os.path.exists(local_file_dir):
+            os.mkdir(local_file_dir)
+
+        local_file_path: str = os.path.join(local_file_dir,file_suffix)
+        # 使md附件或者图片的路径分隔符为"/"
+        local_file_path = local_file_path.replace('\\', '/')
+        
+        try:
+            with open(local_file_path, 'wb') as f:
+                f.write(response.content)  # response.content 本身就为字节类型
+            print('已将{}「{}」转换为「{}」'.format(file_type, url, local_file_path))
+        except:
+            error_msg = '{} {}有误！'.format(url, file_type)
+            print(error_msg)
+            return ''
+
+        return local_file_path
+
+    
+    def login(self):
+        self.youdaonote_api = YoudaoNoteApi()
+        error_msg = self.youdaonote_api.login_by_cookies()
+        if error_msg:
+            return '', error_msg
+    
+    def load_config(self):
+        config_dict, error_msg = covert_config(CONFIG_PATH)
+        self.smms_secret_token = config_dict['smms_secret_token']
+        self.is_relative_path = config_dict['is_relative_path']
+    
+    def more_pull_images(self,md_dir: str):
+        """遍历文件夹的md文件,拉取md文件有道云的图片和附件
+
+        Args:
+            md_dir (str): md文件的目录
+        """
+        file_path = md_dir + "/**/*.md"
+        # 匹配当前目录下所有的txt文件
+        file_list = glob.glob(file_path,recursive=True)
+        for md_file in file_list:
+            self.migration_ydnote_url(md_file)
+
+class ImageUpload(object):
+    """
+    图片上传到指定图床
+    """
+
+    @staticmethod
+    def upload_to_smms(youdaonote_api, image_url, smms_secret_token) -> Tuple[str, str]:
+        """
+        上传图片到 sm.ms
+        :param image_url:
+        :param smms_secret_token:
+        :return: url, error_msg
+        """
+        try:
+            smfile = youdaonote_api.http_get(image_url).content
+        except:
+            error_msg = '下载「{}」失败！图片可能已失效，可浏览器登录有道云笔记后，查看图片是否能正常加载'.format(image_url)
+            return '', error_msg
+        files = {'smfile': smfile}
+        upload_api_url = 'https://sm.ms/api/v2/upload'
+        headers = {'Authorization': smms_secret_token}
+
+        error_msg = 'SM.MS 免费版每分钟限额 20 张图片，每小时限额 100 张图片，大小限制 5 M，上传失败！「{}」未转换，' \
+                    '将下载图片到本地'.format(image_url)
+        try:
+            res_json = requests.post(upload_api_url, headers=headers, files=files, timeout=5).json()
+        except requests.exceptions.ProxyError as err:
+            error_msg = '网络错误，上传「{}」到 SM.MS 失败！将下载图片到本地。错误提示：{}'.format(image_url, format(err))
+            return '', error_msg
+        except Exception:
+            return '', error_msg
+
+        if res_json.get('success'):
+            url = res_json['data']['url']
+            print('已将图片「{}」转换为「{}」'.format(image_url, url))
+            return url, ''
+        if res_json.get('code') == 'image_repeated':
+            url = res_json['images']
+            print('已将图片「{}」转换为「{}」'.format(image_url, url))
+            return url, ''
+        if res_json.get('code') == 'flood':
+            return '', error_msg
+
+        error_msg = '上传「{}」到 SM.MS 失败，请检查图片 url 或 smms_secret_token（{}）是否正确！将下载图片到本地'.format(
+            image_url, smms_secret_token)
+        return '', error_msg
+
+
+if __name__ == '__main__':
+    path = "D:\\youdaonote\\obsidian\\网络安全"
+    pull_image = PullImages()
+    pull_image.more_pull_images(path)
+    

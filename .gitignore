@@ -1,0 +1,5 @@
+.idea/
+*.iml
+cookies_user.json
+.python-version
+__pycache__
