@@ -2,11 +2,10 @@
 
 此脚本可将有道云的所有的笔记下载到本地。代码参考了 [youdaonote-pull](https://github.com/DeppWang/youdaonote-pull.git)，目前新建有道云笔记爬取下来的格式为JSON，以前的是xml格式，而[youdaonote-pull](https://github.com/DeppWang/youdaonote-pull.git) 目前不支持JSON格式的转换，因此此脚本添加json格式的转换。脚本转换了一些常用的格式，例如，标题、加粗、表格、图片、文件、列表等，有些格式和属性可能没有考虑到，笔记可能有些缺失，下载下来后，请检查一下。
 
-
 ## 功能
 
 - 可将所有笔记（文件）按原格式下载到本地
-- 有道云的正常笔记爬取后 `是Xml` 和json格式，不是正常笔记内容，需要**将其转换为 `Markdown` 格式**
+- 有道云的正常笔记爬取后是`xml`和`json`格式，不是正常笔记内容，需要**将其转换为`Markdown`格式**
 - 由于有道云笔记图床图片不能在有道云笔记外显示，**默认将其下载到本地，或指定上传到 [SM.MS](https://sm.ms)**
 
 ## 使用步骤
@@ -159,8 +158,6 @@ pip install -r requirements.txt
 }
 ```
 
-
-
 ### 二、运行导出脚本
 
 ```shell
@@ -169,8 +166,6 @@ python  pull_note.py  # Windows
 ```
 
 如果某个笔记拉取失败，可能是笔记格式比较旧，可以新建一个新笔记，把旧笔记内容复制到新笔记，重新拉取，基本都可以解决。
-
-
 
 三、多次导出
 
@@ -189,7 +184,7 @@ python  pull_note.py   # Windows
 
 1. 如果你自己修改脚本，注意不要将 `cookies.json` 文件 `push` 到 GitHub
 2. 如果你不是开发者，可能对上面的命令行操作有所陌生，建议按步骤慢慢操作一遍
-3. 请确认代码是否为最新，有问题请先看 [issue](https://github.com/DeppWang/youdaonote-pull/issues?q=is%3Aissue+is%3Aclosed) 是否存在，不存在再提 issue
+3. 请确认代码是否为最新，有问题请先看 [issue](https://github.com/chunxingque/youdaonote-pull/issues) 是否存在，不存在再提 issue
    ```bash
    git pull origin master  # 更新代码
    ```
