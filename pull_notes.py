@@ -19,8 +19,8 @@ from pull_images import PullImages
 from public import FileActionEnum
 from public import covert_config
 
-
-REGEX_SYMBOL = re.compile(r'[\\/:\*\?"<>\|]')  # 符号：\ / : * ? " < > |
+# 优化文件名
+REGEX_SYMBOL = re.compile(r'[\\/:\*\?"<>\|\(\)]')  # 符号：\ / : * ? " < > | ( )
 MARKDOWN_SUFFIX = '.md'
 NOTE_SUFFIX = '.note'
 CONFIG_PATH = 'config.json'
@@ -282,8 +282,11 @@ class YoudaoNotePull(object):
         :param name:
         :return:
         """
-        name = REGEX_SYMBOL.sub('_', name)
+        # 去除换行符,首尾的空格
         name = name.replace('\n','')
+        name = name.strip()
+        # 替换一些特殊符号
+        name = REGEX_SYMBOL.sub('_', name)
         return name
 
 
@@ -291,6 +294,8 @@ if __name__ == '__main__':
     start_time = int(time.time())
     try:
         youdaonote_pull = YoudaoNotePull()
+        # data = youdaonote_pull._optimize_file_name('   你好 (helo)s')
+        # print(data)        
         ydnote_dir_id, error_msg = youdaonote_pull.get_ydnote_dir_id()
         if error_msg:
             print(error_msg)

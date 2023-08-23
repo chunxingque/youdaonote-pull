@@ -129,6 +129,7 @@ class PullImages():
             os.mkdir(local_file_dir)
             
         file_name = os.path.basename(os.path.splitext(file_path)[0])
+        file_name = self._optimize_file_name(file_name)
         #请求后的真实的URL中才有东西
         realUrl = parse.parse_qs(urlparse(response.url).query)
         if realUrl:
@@ -179,6 +180,7 @@ class PullImages():
             return ''
 
         file_dirname = ATTACH
+        attach_name = self._optimize_file_name(attach_name)
         file_suffix = attach_name
         local_file_dir = os.path.join(os.path.dirname(file_path),file_dirname)
 
@@ -199,6 +201,18 @@ class PullImages():
             return ''
 
         return local_file_path
+    
+    def _optimize_file_name(self, name) -> str:
+        """
+        优化文件名，替换下划线
+        :param name:
+        :return:
+        """
+        # 去除换行符,首尾的空格,文件名有空格识别不出图片
+        name = name.strip()
+        regex_symbol = re.compile(r'[\\/:\*\?"<>\|\(\)\ ]')  # 符号：\ / : * ? " < > | ( ) 空格
+        name = regex_symbol.sub('_', name)
+        return name
 
     
     def login(self):
@@ -275,5 +289,7 @@ class ImageUpload(object):
 if __name__ == '__main__':
     path = "D:\\youdaonote\\obsidian\\网络安全"
     pull_image = PullImages()
-    pull_image.more_pull_images(path)
+    # pull_image.more_pull_images(path)
+    data = pull_image._optimize_file_name(' sf23*35/55&&&s f.png')
+    print(data)
     

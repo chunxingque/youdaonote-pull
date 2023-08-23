@@ -282,7 +282,7 @@ class jsonConvert(object):
     def convert_l_func(self,content):
         """有序列表和无序列表,有序列表转成无序列表"""
         text = self.get_common_text(content=content)
-        is_ordered = content['4']['lt']
+        is_ordered = content.get('4').get('lt')
         if is_ordered == 'unordered':
             return '- {text}'.format(text=text)
         elif is_ordered == 'ordered':
@@ -483,10 +483,10 @@ class YoudaoNoteConvert(object):
 
 
 if __name__ == '__main__':
-    path = "./test/test.xml"
+    path = "./test/test4.json"
     # YoudaoNoteConvert.markdown_filter(path)
     # line_content = jsonConvert().convert_text_func(json)
     # print(line_content)
-    # YoudaoNoteConvert.covert_json_to_markdown(path)
-    YoudaoNoteConvert.covert_xml_to_markdown(path)
+    YoudaoNoteConvert.covert_json_to_markdown(path)
+    # YoudaoNoteConvert.covert_xml_to_markdown(path)
 

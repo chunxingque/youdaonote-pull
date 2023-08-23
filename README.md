@@ -5,7 +5,7 @@
 ## 功能
 
 - 可将所有笔记（文件）按原格式下载到本地
-- 有道云的正常笔记爬取后是`xml`和`json`格式，不是正常笔记内容，需要**将其转换为`Markdown`格式**
+- 有道云的正常笔记爬取后是 `xml`和 `json`格式，不是正常笔记内容，需要**将其转换为 `Markdown`格式**
 - 由于有道云笔记图床图片不能在有道云笔记外显示，**默认将其下载到本地，或指定上传到 [SM.MS](https://sm.ms)**
 
 ## 使用步骤
@@ -161,19 +161,22 @@ pip install -r requirements.txt
 ### 二、运行导出脚本
 
 ```shell
-python3 pull_note.py  # macOS/Linux
-python  pull_note.py  # Windows
+python3 pull_notes.py  # macOS/Linux
+python  pull_notes.py  # Windows
 ```
 
 如果某个笔记拉取失败，可能是笔记格式比较旧，可以新建一个新笔记，把旧笔记内容复制到新笔记，重新拉取，基本都可以解决。
 
-三、多次导出
+建议笔记名称不要使用特殊符号，例如：#、/、:、空格、英文括号等，可以使用_和-符号替代，不然容易报错
+
+
+### 三、多次导出
 
 多次导出时，同样使用以下命令：
 
 ```shell
-python3 pull_note.py  # macOS/Linux
-python  pull_note.py   # Windows
+python3 pull_notes.py  # macOS/Linux
+python  pull_notes.py   # Windows
 ```
 
 根据有道云笔记文件最后修改时间是否大于本地文件最后修改时间来判断是否需要更新。再次导出时，只会导出有道云笔记上次导出后新增、修改或未导出的笔记，不会覆盖本地已经修改的文件。**但有道云笔记和本地不要同时修改同一个文件，这样可能会导致本地修改丢失**！
