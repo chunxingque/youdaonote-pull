@@ -210,7 +210,7 @@ class PullImages():
         """
         # 去除换行符,首尾的空格,文件名有空格识别不出图片
         name = name.strip()
-        regex_symbol = re.compile(r'[\\/:\*\?"<>\|\(\)\ ]')  # 符号：\ / : * ? " < > | ( ) 空格
+        regex_symbol = re.compile(r'[\\/:\*\?"<>\|\(\)、\ ]')  # 符号：\ / : * ? " < > | ( ) 空格
         name = regex_symbol.sub('_', name)
         return name
 
@@ -290,6 +290,6 @@ if __name__ == '__main__':
     path = "D:\\youdaonote\\obsidian\\网络安全"
     pull_image = PullImages()
     # pull_image.more_pull_images(path)
-    data = pull_image._optimize_file_name(' sf23*35/55&&&s f.png')
+    data = pull_image._optimize_file_name(' sf23*35/55&&&s、f.png')
     print(data)
     

@@ -19,8 +19,7 @@ from pull_images import PullImages
 from public import FileActionEnum
 from public import covert_config
 
-# 优化文件名
-REGEX_SYMBOL = re.compile(r'[\\/:\*\?"<>\|\(\)]')  # 符号：\ / : * ? " < > | ( )
+
 MARKDOWN_SUFFIX = '.md'
 NOTE_SUFFIX = '.note'
 CONFIG_PATH = 'config.json'
@@ -219,7 +218,7 @@ class YoudaoNotePull(object):
         elif youdao_file_suffix == ".md":
             note_type = 3
         else:
-            print(f"文件后缀{youdao_file_suffix}不识别，请检查！")
+            print(f"文件后缀「{youdao_file_suffix}」不识别，请检查！")
         
         return note_type            
 
@@ -282,11 +281,17 @@ class YoudaoNotePull(object):
         :param name:
         :return:
         """
-        # 去除换行符,首尾的空格
+        # 替换下划线
+        regex_symbol = re.compile(r'[<\(]')  # 符号： < (
+        # 删除特殊字符
+        del_regex_symbol = re.compile(r'[\\/":\|\*\?#\)>]')  # 符号：\ / " : | * ? # ) >
+        # 首尾的空格
         name = name.replace('\n','')
+        # 去除换行符
         name = name.strip()
         # 替换一些特殊符号
-        name = REGEX_SYMBOL.sub('_', name)
+        name = regex_symbol.sub('_', name)
+        name = del_regex_symbol.sub('', name)
         return name
 
 
@@ -294,7 +299,7 @@ if __name__ == '__main__':
     start_time = int(time.time())
     try:
         youdaonote_pull = YoudaoNotePull()
-        # data = youdaonote_pull._optimize_file_name('   你好 (helo)s')
+        # data = youdaonote_pull._optimize_file_name(' \/":|*?#)>  你(好) (he#l**o|)s')
         # print(data)        
         ydnote_dir_id, error_msg = youdaonote_pull.get_ydnote_dir_id()
         if error_msg:

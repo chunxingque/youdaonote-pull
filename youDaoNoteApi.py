@@ -135,3 +135,5 @@ class YoudaoNoteApi(object):
         checkin_url = 'https://note.youdao.com/yws/mapi/user?method=checkin'
         return self.http_post(checkin_url,data={})
     
+    def note_rename(self,note_name,file_id):
+        url = f'https://note.youdao.com/yws/api/personal/sync?method=push&name={note_name}fileId={file_id}&domain=0&rootVersion=-1&sessionId=&modifyTime=1692786849&transactionId={file_id}&transactionTime=1692786849&editorVersion=1692267502000&tags=&_system=windows&_systemVersion=&_screenWidth=1920&_screenHeight=1080&_appName=ynote&_appuser=019623eb3bfaff1f5ddc278090f8420d&_vendor=official-website&_launch=22279&_firstTime=2023/08/19 11:24:10&_deviceId=8cf8855c4105f937&_platform=web&_cityCode=440300&_cityName=深圳&sev=j1&sec=v1&keyfrom=web&cstk={self.cstk}'

@@ -1,7 +1,6 @@
 import os
-import glob
 
-file_path = "D:\\youdaonote\\obsidian/**/*.md"
-# 匹配当前目录下所有的txt文件
-file_list = glob.glob(file_path,recursive=True)
-print(file_list)
+file_name = "测试.哈哈哈.md"
+
+youdao_file_suffix = os.path.splitext(file_name)
+print(youdao_file_suffix)
