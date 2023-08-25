@@ -23,8 +23,7 @@ git --version
 - 打开命令行软件，如 Terminal (macOS)、PowerShell (Windows)，clone 项目，里面包含脚本
 
 ```shell
-pwd
-git clone https://github.com/DeppWang/youdaonote-pull.git
+git clone https://github.com/chunxingque/youdaonote-pull.git
 cd youdaonote-pull
 ```
 
