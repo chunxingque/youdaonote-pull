@@ -299,8 +299,8 @@ if __name__ == '__main__':
     start_time = int(time.time())
     try:
         youdaonote_pull = YoudaoNotePull()
-        data = youdaonote_pull._optimize_file_name(' \/":|*?#())<> []  你(好) (he#l**o|)s')
-        print(data)        
+        # data = youdaonote_pull._optimize_file_name(' \/":|*?#())<> []  你(好) (he#l**o|)s')
+        # print(data)        
         ydnote_dir_id, error_msg = youdaonote_pull.get_ydnote_dir_id()
         if error_msg:
             print(error_msg)
