@@ -282,9 +282,9 @@ class YoudaoNotePull(object):
         :return:
         """
         # 替换下划线
-        regex_symbol = re.compile(r'[<\(]')  # 符号： < (
+        regex_symbol = re.compile(r'[<]')  # 符号： <
         # 删除特殊字符
-        del_regex_symbol = re.compile(r'[\\/":\|\*\?#\)>]')  # 符号：\ / " : | * ? # ) >
+        del_regex_symbol = re.compile(r'[\\/":\|\*\?#>]')  # 符号：\ / " : | * ? # >
         # 首尾的空格
         name = name.replace('\n','')
         # 去除换行符
@@ -299,8 +299,8 @@ if __name__ == '__main__':
     start_time = int(time.time())
     try:
         youdaonote_pull = YoudaoNotePull()
-        # data = youdaonote_pull._optimize_file_name(' \/":|*?#)>  你(好) (he#l**o|)s')
-        # print(data)        
+        data = youdaonote_pull._optimize_file_name(' \/":|*?#())<> []  你(好) (he#l**o|)s')
+        print(data)        
         ydnote_dir_id, error_msg = youdaonote_pull.get_ydnote_dir_id()
         if error_msg:
             print(error_msg)

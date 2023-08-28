@@ -1,6 +1,5 @@
-import os
+import urllib.parse
 
-file_name = "测试.哈哈哈.md"
-
-youdao_file_suffix = os.path.splitext(file_name)
-print(youdao_file_suffix)
+url_str = 'http://www.example.com/path/to/file?param1=value1&~param2=value2'
+encoded_str = urllib.parse.quote(url_str, safe='/&:')
+print(encoded_str)

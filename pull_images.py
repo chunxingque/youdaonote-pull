@@ -53,6 +53,7 @@ class PullImages():
             if self.is_relative_path:
                 image_path = image_path[image_path.find(IMAGES):]
             
+            image_path = self.url_encode(image_path)
             content = content.replace(image_url, image_path)
 
         # 附件
@@ -210,7 +211,7 @@ class PullImages():
         """
         # 去除换行符,首尾的空格,文件名有空格识别不出图片
         name = name.strip()
-        regex_symbol = re.compile(r'[\\/:\*\?"<>\|\(\)、\ ]')  # 符号：\ / : * ? " < > | ( ) 空格
+        regex_symbol = re.compile(r'[\\/:\*\?"<>\|、]')  # 符号：\ / : * ? " < > | ( )
         name = regex_symbol.sub('_', name)
         return name
 
@@ -237,6 +238,15 @@ class PullImages():
         file_list = glob.glob(file_path,recursive=True)
         for md_file in file_list:
             self.migration_ydnote_url(md_file)
+    
+    @classmethod
+    def url_encode(cls,path: str):
+        """对一些特殊字符url编码
+        Args:
+            path (str): 
+        """
+        path = path.replace(' ','%20')
+        return path
 
 class ImageUpload(object):
     """
@@ -290,6 +300,7 @@ if __name__ == '__main__':
     path = "D:\\youdaonote\\obsidian\\网络安全"
     pull_image = PullImages()
     # pull_image.more_pull_images(path)
-    data = pull_image._optimize_file_name(' sf23*35/55&&&s、f.png')
+    data = pull_image._optimize_file_name('正 s()ss&&文.jpg')
+    data = pull_image.url_encode(data)
     print(data)
     
