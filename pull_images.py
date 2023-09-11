@@ -133,9 +133,10 @@ class PullImages():
         file_name = self._optimize_file_name(file_name)
         #请求后的真实的URL中才有东西
         realUrl = parse.parse_qs(urlparse(response.url).query)
-        if realUrl:
-            # dict 不为空再去取 download
-            read_file_name = realUrl['download'][0]
+        real_filename = realUrl.get('filename')
+        if real_filename:
+            # dict 不为空时，去获取真实文件名称
+            read_file_name = real_filename[0]
             file_suffix = '.' + read_file_name.split('.')[-1]
             file_name = os.path.basename(os.path.splitext(file_path)[0]) + '_image_' + str(index) + file_suffix 
         else:
@@ -236,6 +237,7 @@ class PullImages():
         file_path = md_dir + "/**/*.md"
         # 匹配当前目录下所有的txt文件
         file_list = glob.glob(file_path,recursive=True)
+        print(file_list)
         for md_file in file_list:
             self.migration_ydnote_url(md_file)
     
@@ -297,10 +299,11 @@ class ImageUpload(object):
 
 
 if __name__ == '__main__':
-    path = "D:\\youdaonote\\obsidian\\网络安全"
+    path = "D:\\obsidian\\obsidian\\其他"
     pull_image = PullImages()
+    pull_image.migration_ydnote_url('D:/obsidian/obsidian/其他/test-new.md')
     # pull_image.more_pull_images(path)
-    data = pull_image._optimize_file_name('正 s()ss&&文.jpg')
-    data = pull_image.url_encode(data)
-    print(data)
+    # data = pull_image._optimize_file_name('正 s()ss&&文.jpg')
+    # data = pull_image.url_encode(data)
+    # print(data)
     
