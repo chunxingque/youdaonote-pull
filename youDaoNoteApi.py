@@ -109,7 +109,10 @@ class YoudaoNoteApi(object):
         }
         """
         url = self.DIR_MES_URL.format(dir_id=dir_id, cstk=self.cstk)
-        return self.http_get(url).json()
+        res = self.http_get(url)
+        if res.status_code >= 500:
+            return self.http_get(url).json()
+        return res.json()
 
     def get_file_by_id(self, file_id):
         """
