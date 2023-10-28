@@ -42,6 +42,9 @@ python --version   # Windows
 # macOS
 sudo easy_install pip3      # 安装 Python3 Package Installer
 sudo pip3 install -r requirements.txt
+
+# 虚拟环境
+python3 -m venv app-venv
 ```
 
 ```shell
@@ -49,6 +52,9 @@ sudo pip3 install -r requirements.txt
 pip install -r requirements.txt
 
 # 有问题可参考 https://www.liaoxuefeng.com/wiki/1016959663602400/1017493741106496
+
+# 虚拟环境
+app-venv/bin/pip install -r requirements.txt
 ```
 
 #### 3、设置登录 `Cookies` 文件 `cookies.json`
@@ -201,6 +207,7 @@ console.warn(JSON.stringify(formattedCookies, null, 2))
 ```shell
 python3 pull_notes.py  # macOS/Linux
 python  pull_notes.py  # Windows
+app-venv/bin/python pull_notes.py # 虚拟环境
 ```
 
 如果某个笔记拉取失败，可能是笔记格式比较旧，可以新建一个新笔记，把旧笔记内容复制到新笔记，重新拉取，基本都可以解决。
