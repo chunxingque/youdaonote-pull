@@ -1,13 +1,14 @@
-import re
-import os
 import glob
+import os
+import re
 from typing import Tuple
-import requests
 from urllib import parse
-
 from urllib.parse import urlparse
-from youDaoNoteApi import YoudaoNoteApi
+
+import requests
+import logging
 from public import covert_config
+from youDaoNoteApi import YoudaoNoteApi
 
 REGEX_IMAGE_URL = re.compile(r'!\[.*?\]\((.*?note\.youdao\.com.*?)\)')
 REGEX_ATTACH = re.compile(r'\[(.*?)\]\(((http|https)://note\.youdao\.com.*?)\)')
@@ -22,7 +23,7 @@ CONFIG_PATH = 'config.json'
 
 
 class PullImages():
-    def __init__(self, youdaonote_api=None, smms_secret_token: str=None, is_relative_path: bool=None):
+    def __init__(self, youdaonote_api=None, smms_secret_token: str = None, is_relative_path: bool = None):
         self.youdaonote_api = youdaonote_api
         self.smms_secret_token = smms_secret_token
         self.is_relative_path = is_relative_path  # 是否使用相对路径
@@ -30,36 +31,42 @@ class PullImages():
             self.load_config()
         if not self.youdaonote_api:
             self.login()
-    
+
     def migration_ydnote_url(self, file_path):
         """
         迁移有道云笔记文件 URL
         :param file_path:
         :return:
         """
+
+        stats = os.stat(file_path)
+        if stats.st_size == 0:
+            logging.error(f"{file_path} {stats.st_size}")
+            return
+
         with open(file_path, 'rb') as f:
             content = f.read().decode('utf-8')
 
         # 图片
         image_urls = REGEX_IMAGE_URL.findall(content)
         if len(image_urls) > 0:
-            print('正在转换有道云笔记「{}」中的有道云图片链接...'.format(file_path))
-        for index,image_url in enumerate(image_urls):
-            image_path = self._get_new_image_path(file_path, image_url,index)
+            logging.info('正在转换有道云笔记「{}」中的有道云图片链接...'.format(file_path))
+        for index, image_url in enumerate(image_urls):
+            image_path = self._get_new_image_path(file_path, image_url, index)
             if image_url == image_path:
                 continue
-            #将绝对路径替换为相对路径，实现满足 Obsidian 格式要求
-            #将 image_path 路径中 images 之前的路径去掉，只保留以 images 开头的之后的路径
+            # 将绝对路径替换为相对路径，实现满足 Obsidian 格式要求
+            # 将 image_path 路径中 images 之前的路径去掉，只保留以 images 开头的之后的路径
             if self.is_relative_path:
                 image_path = image_path[image_path.find(IMAGES):]
-            
+
             image_path = self.url_encode(image_path)
             content = content.replace(image_url, image_path)
 
         # 附件
         attach_name_and_url_list = REGEX_ATTACH.findall(content)
         if len(attach_name_and_url_list) > 0:
-            print('正在转换有道云笔记「{}」中的有道云附件链接...'.format(file_path))
+            logging.info('正在转换有道云笔记「{}」中的有道云附件链接...'.format(file_path))
         for attach_name_and_url in attach_name_and_url_list:
             attach_url = attach_name_and_url[1]
             attach_path = self._download_attach_url(file_path, attach_url, attach_name_and_url[0])
@@ -74,7 +81,7 @@ class PullImages():
             f.write(content.encode())
         return
 
-    def _get_new_image_path(self, file_path, image_url,index) -> str:
+    def _get_new_image_path(self, file_path, image_url, index) -> str:
         """
         将图片链接转换为新的链接
         :param file_path:
@@ -83,7 +90,7 @@ class PullImages():
         """
         # 当 smms_secret_token 为空（不上传到 SM.MS），下载到图片到本地
         if not self.smms_secret_token:
-            image_path = self._download_image_url(file_path, image_url,index)
+            image_path = self._download_image_url(file_path, image_url, index)
             return image_path or image_url
 
         # smms_secret_token 不为空，上传到 SM.MS
@@ -92,11 +99,11 @@ class PullImages():
         # 如果上传失败，仍下载到本地
         if not error_msg:
             return new_file_url
-        print(error_msg)
-        image_path = self._download_image_url(file_path, image_url,index)
+        logging.info(error_msg)
+        image_path = self._download_image_url(file_path, image_url, index)
         return image_path or image_url
-    
-    def _download_image_url(self, file_path, url,index) -> str:
+
+    def _download_image_url(self, file_path, url, index) -> str:
         """
         下载文件到本地，返回本地路径
         :param file_path:
@@ -108,15 +115,15 @@ class PullImages():
             response = self.youdaonote_api.http_get(url)
         except requests.exceptions.ProxyError as err:
             error_msg = '网络错误，「{}」下载失败。错误提示：{}'.format(url, format(err))
-            print(error_msg)
+            logging.info(error_msg)
             return ''
 
         content_type = response.headers.get('Content-Type')
         file_type = '图片'
         if response.status_code != 200 or not content_type:
             error_msg = '下载「{}」失败！{}可能已失效，可浏览器登录有道云笔记后，查看{}是否能正常加载'.format(url, file_type,
-                                                                           file_type)
-            print(error_msg)
+                                                                                                         file_type)
+            logging.info(error_msg)
             return ''
 
         # 默认下载图片到 images 文件夹
@@ -124,42 +131,40 @@ class PullImages():
         # 后缀 png 和 jpeg 后可能出现 ; `**.png;`, 原因未知
         content_type_arr = content_type.split('/')
         file_suffix = '.' + content_type_arr[1].replace(';', '') if len(content_type_arr) == 2 else "jpg"
-        local_file_dir = os.path.join(os.path.dirname(file_path),file_dirname)
+        local_file_dir = os.path.join(os.path.dirname(file_path), file_dirname)
 
         if not os.path.exists(local_file_dir):
             os.mkdir(local_file_dir)
-            
+
         file_name = os.path.basename(os.path.splitext(file_path)[0])
         file_name = self._optimize_file_name(file_name)
-        #请求后的真实的URL中才有东西
+        # 请求后的真实的URL中才有东西
         realUrl = parse.parse_qs(urlparse(response.url).query)
         real_filename = realUrl.get('filename')
         if real_filename:
             # dict 不为空时，去获取真实文件名称
             read_file_name = real_filename[0]
             file_suffix = '.' + read_file_name.split('.')[-1]
-            file_name = os.path.basename(os.path.splitext(file_path)[0]) + '_image_' + str(index) + file_suffix 
+            file_name = os.path.basename(os.path.splitext(file_path)[0]) + '_image_' + str(index) + file_suffix
         else:
             file_name = os.path.basename(os.path.splitext(file_path)[0]) + '_image_' + str(index) + file_suffix
-        
+
         local_file_path = os.path.join(local_file_dir, file_name)
         # 使md附件或者图片的路径分隔符为"/"
         local_file_path = local_file_path.replace('\\', '/')
-        
+
         try:
             with open(local_file_path, 'wb') as f:
                 f.write(response.content)  # response.content 本身就为字节类型
-            print('已将{}「{}」转换为「{}」'.format(file_type, url, local_file_path))
+            logging.debug('已将{}「{}」转换为「{}」'.format(file_type, url, local_file_path))
         except:
             error_msg = '{} {}有误！'.format(url, file_type)
-            print(error_msg)
+            logging.error(error_msg)
             return ''
-        
-        return local_file_path
-    
-        
 
-    def _download_attach_url(self, file_path, url,attach_name=None) -> str:
+        return local_file_path
+
+    def _download_attach_url(self, file_path, url, attach_name=None) -> str:
         """
         下载文件到本地，返回本地路径
         :param file_path:
@@ -171,39 +176,40 @@ class PullImages():
             response = self.youdaonote_api.http_get(url)
         except requests.exceptions.ProxyError as err:
             error_msg = '网络错误，「{}」下载失败。错误提示：{}'.format(url, format(err))
-            print(error_msg)
+            logging.info(error_msg)
             return ''
 
         content_type = response.headers.get('Content-Type')
         file_type = '附件'
         if response.status_code != 200 or not content_type:
-            error_msg = '下载「{}」失败！{}可能已失效，可浏览器登录有道云笔记后，查看{}是否能正常加载'.format(url, file_type,file_type)
-            print(error_msg)
+            error_msg = '下载「{}」失败！{}可能已失效，可浏览器登录有道云笔记后，查看{}是否能正常加载'.format(url, file_type,
+                                                                                                         file_type)
+            logging.info(error_msg)
             return ''
 
         file_dirname = ATTACH
         attach_name = self._optimize_file_name(attach_name)
         file_suffix = attach_name
-        local_file_dir = os.path.join(os.path.dirname(file_path),file_dirname)
+        local_file_dir = os.path.join(os.path.dirname(file_path), file_dirname)
 
         if not os.path.exists(local_file_dir):
             os.mkdir(local_file_dir)
 
-        local_file_path: str = os.path.join(local_file_dir,file_suffix)
+        local_file_path: str = os.path.join(local_file_dir, file_suffix)
         # 使md附件或者图片的路径分隔符为"/"
         local_file_path = local_file_path.replace('\\', '/')
-        
+
         try:
             with open(local_file_path, 'wb') as f:
                 f.write(response.content)  # response.content 本身就为字节类型
-            print('已将{}「{}」转换为「{}」'.format(file_type, url, local_file_path))
+            logging.info('已将{}「{}」转换为「{}」'.format(file_type, url, local_file_path))
         except:
             error_msg = '{} {}有误！'.format(url, file_type)
-            print(error_msg)
+            logging.info(error_msg)
             return ''
 
         return local_file_path
-    
+
     def _optimize_file_name(self, name) -> str:
         """
         优化文件名，替换下划线
@@ -216,19 +222,18 @@ class PullImages():
         name = regex_symbol.sub('_', name)
         return name
 
-    
     def login(self):
         self.youdaonote_api = YoudaoNoteApi()
         error_msg = self.youdaonote_api.login_by_cookies()
         if error_msg:
             return '', error_msg
-    
+
     def load_config(self):
         config_dict, error_msg = covert_config(CONFIG_PATH)
         self.smms_secret_token = config_dict['smms_secret_token']
         self.is_relative_path = config_dict['is_relative_path']
-    
-    def more_pull_images(self,md_dir: str):
+
+    def more_pull_images(self, md_dir: str):
         """遍历文件夹的md文件,拉取md文件有道云的图片和附件
 
         Args:
@@ -236,19 +241,20 @@ class PullImages():
         """
         file_path = md_dir + "/**/*.md"
         # 匹配当前目录下所有的txt文件
-        file_list = glob.glob(file_path,recursive=True)
-        print(file_list)
+        file_list = glob.glob(file_path, recursive=True)
+        logging.info(file_list)
         for md_file in file_list:
             self.migration_ydnote_url(md_file)
-    
+
     @classmethod
-    def url_encode(cls,path: str):
+    def url_encode(cls, path: str):
         """对一些特殊字符url编码
         Args:
             path (str): 
         """
-        path = path.replace(' ','%20')
+        path = path.replace(' ', '%20')
         return path
+
 
 class ImageUpload(object):
     """
@@ -284,11 +290,11 @@ class ImageUpload(object):
 
         if res_json.get('success'):
             url = res_json['data']['url']
-            print('已将图片「{}」转换为「{}」'.format(image_url, url))
+            logging.info('已将图片「{}」转换为「{}」'.format(image_url, url))
             return url, ''
         if res_json.get('code') == 'image_repeated':
             url = res_json['images']
-            print('已将图片「{}」转换为「{}」'.format(image_url, url))
+            logging.info('已将图片「{}」转换为「{}」'.format(image_url, url))
             return url, ''
         if res_json.get('code') == 'flood':
             return '', error_msg
@@ -305,5 +311,4 @@ if __name__ == '__main__':
     # pull_image.more_pull_images(path)
     # data = pull_image._optimize_file_name('正 s()ss&&文.jpg')
     # data = pull_image.url_encode(data)
-    # print(data)
-    
+    # logging.info(data)

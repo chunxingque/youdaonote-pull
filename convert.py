@@ -1,9 +1,8 @@
-
 import json
+import logging
 import os
 import xml.etree.ElementTree as ET
 from typing import Tuple
-
 
 MARKDOWN_SUFFIX = '.md'
 NOTE_SUFFIX = '.note'
@@ -160,13 +159,13 @@ class jsonConvert(object):
     """
     json 转换规则
     """
-    
-    def get_common_text(self,content: dict) -> Tuple[list,str]:
+
+    def get_common_text(self, content: dict) -> Tuple[list, str]:
         """获取通常文本
         :return
             text(text): 文本内容
         """
-        
+
         # text_list = content.get('5')[0].get('7')
         text = ''
         five_contents = content.get('5')
@@ -179,11 +178,10 @@ class jsonConvert(object):
                 # 9文本属性
                 text_attrs = seven_contents[0].get('9')
                 if text and text_attrs:
-                    text = self.convert_text_attribute(text,text_attrs)
+                    text = self.convert_text_attribute(text, text_attrs)
         return text
-        
-    
-    def convert_text_func(self,content) -> str:
+
+    def convert_text_func(self, content) -> str:
         """ 正常文本、粗体、斜体、删除线、链接"""
         all_text = ''
         one_five_contents = content.get('5')
@@ -194,15 +192,15 @@ class jsonConvert(object):
                 # 文本类型
                 text_type = one_five_content.get('6')
                 # 文本和属性
-                seven_contents = one_five_content.get('7') 
-                
+                seven_contents = one_five_content.get('7')
+
                 # 获取文本和属性
                 if seven_contents and not two_five_contents:
                     text = seven_contents[0].get('8')
                     text_attrs = seven_contents[0].get('9')
                     if text and text_attrs:
-                        text = self.convert_text_attribute(text,text_attrs)
-                
+                        text = self.convert_text_attribute(text, text_attrs)
+
                 # 链接类型        
                 elif text_type == "li" and two_five_contents:
                     source_text = self.get_common_text(one_five_content)
@@ -214,27 +212,25 @@ class jsonConvert(object):
                     else:
                         text = ''
                 else:
-                    text=''
+                    text = ''
                 if text:
                     all_text += text
         return all_text
-    
-    
-    def convert_text_attribute(self,text: str,text_attrs: list):
+
+    def convert_text_attribute(self, text: str, text_attrs: list):
         """文本属性"""
-        if isinstance(text_attrs,list) and text_attrs and text:
-            for attr  in text_attrs:
+        if isinstance(text_attrs, list) and text_attrs and text:
+            for attr in text_attrs:
                 if attr['2'] == "b":
                     # 粗体
                     text = f"**{text}**"
                 elif attr['2'] == "i":
                     # 斜体
                     text = f"*{text}*"
-        
-        return text
-        
 
-    def convert_h_func(self,content) -> str:
+        return text
+
+    def convert_h_func(self, content) -> str:
         """标题"""
         type_name = content.get('4').get('l')
         text = self.get_common_text(content=content)
@@ -244,18 +240,18 @@ class jsonConvert(object):
             text = ' '.join(["#" * int(level), text])
         return text
 
-    def convert_im_func(self,content):
+    def convert_im_func(self, content):
         # 图片
         image_url = content["4"]["u"]
         return '![]({image_url})'.format(image_url=image_url)
 
-    def convert_a_func(self,content):
+    def convert_a_func(self, content):
         # 附件
         fn = content["4"]["fn"]
         fl = content["4"]["re"]
         return '[{text}]({resource_url})'.format(text=fn, resource_url=fl)
 
-    def convert_cd_func(self,content):
+    def convert_cd_func(self, content):
         # 代码块
         language = content.get('4').get('la')
         codes: list = content.get('5')
@@ -264,11 +260,10 @@ class jsonConvert(object):
             text = self.get_common_text(code)
             if text:
                 code_block += text + '\n'
-        
+
         return '```{language}\r\n{code_block}```'.format(language=language, code_block=code_block)
 
-
-    def convert_q_func(self,content):
+    def convert_q_func(self, content):
         """引用"""
         q_text_list = content['5']
         text = ''
@@ -279,7 +274,7 @@ class jsonConvert(object):
             text += "> {q_text}\n".format(q_text=q_text)
         return text
 
-    def convert_l_func(self,content):
+    def convert_l_func(self, content):
         """有序列表和无序列表,有序列表转成无序列表"""
         text = self.get_common_text(content=content)
         is_ordered = content.get('4').get('lt')
@@ -290,15 +285,15 @@ class jsonConvert(object):
             return '1. {text}'.format(text=text)
         # return '- {text}'.format(text=text)
 
-    def convert_t_func(self,content):
+    def convert_t_func(self, content):
         """
         表格转换
         """
         nl = '\r\n'  # 考虑 Windows 系统，换行符设为 \r\n
         tr_list = content['5']
         table_lines = ''
-        
-        for index,tc in enumerate(tr_list):
+
+        for index, tc in enumerate(tr_list):
             table_content_list = tc['5']
             table_content_len = len(table_content_list)
             if index == 1:
@@ -312,13 +307,11 @@ class jsonConvert(object):
                 else:
                     table_text = " "
                 # print(table_text)
-                table_line = table_line + table_text + ' | ' 
+                table_line = table_line + table_text + ' | '
             table_lines = table_lines + table_line + f'{nl}'
         return table_lines
-    
 
-        
-    def _encode_string_to_md(self,original_text):
+    def _encode_string_to_md(self, original_text):
         """ 将字符串转义 防止 markdown 识别错误 """
 
         if len(original_text) <= 0 or original_text == " ":
@@ -418,15 +411,18 @@ class YoudaoNoteConvert(object):
         if os.path.exists(file_path):
             os.remove(file_path)
         return new_file_path
-        
-    
+
     @staticmethod
     def covert_json_to_markdown_content(file_path):
         new_content_list = []
         # 加载json文件
         with open(file_path, 'r', encoding='utf-8') as f:
-            json_data = json.load(f)
-        
+            try:
+                json_data = json.load(f)
+            except Exception as e:
+                logging.error(e)
+                json_data = {}
+
         json_contents = json_data['5']
         for content in json_contents:
             type = content.get('6')
@@ -441,7 +437,7 @@ class YoudaoNoteConvert(object):
                     line_content = convert_func(content)
             else:
                 line_content = jsonConvert().convert_text_func(content)
-            
+
             # 判断是否有内容
             if line_content:
                 new_content_list.append(line_content)
@@ -467,19 +463,18 @@ class YoudaoNoteConvert(object):
         if os.path.exists(file_path):
             os.remove(file_path)
         return new_file_path
-    
-    
+
     @staticmethod
     def markdown_filter(file_path):
         filter_list = ['&#x20;']
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        
+
         for filter_text in filter_list:
-            new_content = content.replace(filter_text,'')
-        
+            new_content = content.replace(filter_text, '')
+
         with open(file_path, 'wb') as f:
-            f.write(new_content.encode('utf-8'))     
+            f.write(new_content.encode('utf-8'))
 
 
 if __name__ == '__main__':
@@ -489,4 +484,3 @@ if __name__ == '__main__':
     # print(line_content)
     YoudaoNoteConvert.covert_json_to_markdown(path)
     # YoudaoNoteConvert.covert_xml_to_markdown(path)
-

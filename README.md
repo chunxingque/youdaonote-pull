@@ -42,6 +42,9 @@ python --version   # Windows
 # macOS
 sudo easy_install pip3      # 安装 Python3 Package Installer
 sudo pip3 install -r requirements.txt
+
+# 虚拟环境
+python3 -m venv app-venv
 ```
 
 ```shell
@@ -49,6 +52,9 @@ sudo pip3 install -r requirements.txt
 pip install -r requirements.txt
 
 # 有问题可参考 https://www.liaoxuefeng.com/wiki/1016959663602400/1017493741106496
+
+# 虚拟环境
+app-venv/bin/pip install -r requirements.txt
 ```
 
 #### 3、设置登录 `Cookies` 文件 `cookies.json`
@@ -115,6 +121,45 @@ pip install -r requirements.txt
 }
 ```
 
+## Cookie获取js脚本
+用上面的方式寻找Cookie让人眼瞎  
+因此编写此脚本  
+使用方式：   
+浏览器F12打开开发者工具，找到控制台把脚本粘贴进去，替换tmp_cookie的值  
+回车，即可得到一份身份认证Cookie配置文件  
+（YNOTE_SESS属性有HttpOnly属性，不然这个脚本可以更简单）  
+
+```javascript
+var tmp_cookie = '这里把上图Cookie属性的值丢进来'
+
+function getCookies() {
+    var cookies = tmp_cookie.split(';');
+    var result = [];
+    for (var i = 0; i < cookies.length; i++) {
+        var cookie = cookies[i].trim();
+        var parts = cookie.split('=');
+        var name = parts[0];
+        var value = parts[1];
+        if (name === 'YNOTE_CSTK' || name === 'YNOTE_LOGIN' || name === 'YNOTE_SESS') {
+            result.push([name, value, '.note.youdao.com', '/']);
+        }
+    }
+    return result;
+}
+
+function formatCookies(cookies) {
+    return {
+        cookies: cookies
+    };
+}
+
+var cookies = getCookies();
+var formattedCookies = formatCookies(cookies);
+// 网站屏蔽了日志或者设置了console的日志级别，因此这里使用warn级别，可以正常打印
+console.warn(JSON.stringify(formattedCookies, null, 2))
+```
+
+
 - 提示：脚本单纯本地运行，不用担心你的 `Cookies` 泄露
 
 #### 4、设置脚本参数配置文件 `config.json`
@@ -162,6 +207,7 @@ pip install -r requirements.txt
 ```shell
 python3 pull_notes.py  # macOS/Linux
 python  pull_notes.py  # Windows
+app-venv/bin/python pull_notes.py # 虚拟环境
 ```
 
 如果某个笔记拉取失败，可能是笔记格式比较旧，可以新建一个新笔记，把旧笔记内容复制到新笔记，重新拉取，基本都可以解决。
