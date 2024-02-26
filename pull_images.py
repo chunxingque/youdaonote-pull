@@ -57,7 +57,7 @@ class PullImages():
                 continue
             # 将绝对路径替换为相对路径，实现满足 Obsidian 格式要求
             # 将 image_path 路径中 images 之前的路径去掉，只保留以 images 开头的之后的路径
-            if self.is_relative_path:
+            if self.is_relative_path and not self.smms_secret_token:
                 image_path = image_path[image_path.find(IMAGES):]
 
             image_path = self.url_encode(image_path)
@@ -88,20 +88,21 @@ class PullImages():
         :param image_url:
         :return: new_image_path
         """
-        # 当 smms_secret_token 为空（不上传到 SM.MS），下载到图片到本地
-        if not self.smms_secret_token:
+        if self.smms_secret_token:
+            # smms_secret_token 不为空，上传到 SM.MS
+            new_file_url, error_msg = ImageUpload.upload_to_smms(youdaonote_api=self.youdaonote_api, 
+                                                                 image_url=image_url,
+                                                                smms_secret_token=self.smms_secret_token)
+            # 如果上传失败，仍下载到本地
+            if not error_msg:
+                return new_file_url
+            logging.info(error_msg)
             image_path = self._download_image_url(file_path, image_url, index)
             return image_path or image_url
-
-        # smms_secret_token 不为空，上传到 SM.MS
-        new_file_url, error_msg = ImageUpload.upload_to_smms(youdaonote_api=self.youdaonote_api, image_url=image_url,
-                                                             smms_secret_token=self.smms_secret_token)
-        # 如果上传失败，仍下载到本地
-        if not error_msg:
-            return new_file_url
-        logging.info(error_msg)
-        image_path = self._download_image_url(file_path, image_url, index)
-        return image_path or image_url
+        else:
+            # 当 smms_secret_token 为空（不上传到 SM.MS），下载到图片到本地
+            image_path = self._download_image_url(file_path, image_url, index)
+            return image_path or image_url
 
     def _download_image_url(self, file_path, url, index) -> str:
         """
@@ -212,7 +213,7 @@ class PullImages():
 
     def _optimize_file_name(self, name) -> str:
         """
-        优化文件名，替换下划线
+        文件名替换特殊字符
         :param name:
         :return:
         """
@@ -307,7 +308,7 @@ class ImageUpload(object):
 if __name__ == '__main__':
     path = "D:\\obsidian\\obsidian\\其他"
     pull_image = PullImages()
-    pull_image.migration_ydnote_url('D:/obsidian/obsidian/其他/test-new.md')
+    pull_image.migration_ydnote_url('D:/OneDrive/obsidian/其他/test-new.md')
     # pull_image.more_pull_images(path)
     # data = pull_image._optimize_file_name('正 s()ss&&文.jpg')
     # data = pull_image.url_encode(data)
