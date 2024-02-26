@@ -226,7 +226,7 @@ class PullImages():
 
     def _optimize_file_name(self, name) -> str:
         """
-        优化文件名，替换下划线
+        文件名替换特殊字符
         :param name:
         :return:
         """
@@ -379,7 +379,7 @@ class ImageUpload(object):
 if __name__ == '__main__':
     path = "D:\\obsidian\\obsidian\\其他"
     pull_image = PullImages()
-    pull_image.migration_ydnote_url('D:/obsidian/obsidian/其他/test-new.md')
+    pull_image.migration_ydnote_url('D:/OneDrive/obsidian/其他/test-new.md')
     # pull_image.more_pull_images(path)
     # data = pull_image._optimize_file_name('正 s()ss&&文.jpg')
     # data = pull_image.url_encode(data)
