@@ -365,15 +365,14 @@ class ImageUpload(object):
             )
         )
         bucket = oss2.Bucket(auth, kvargs["end_point"], kvargs["bucket"])
-        bucket.put_object(kvargs["dir_path"] + originname, content)
+        result = bucket.put_object(kvargs["dir_path"] + originname, content)
+        if result.status != 200:
+            logging.warn("上传图片至OSS失败，错误信息：{}".format(result.status))
+            return "", "上传图片至OSS失败，错误信息：{}".format(result.status)
+        new_url = "https://" + kvargs["bucket"]+ "."+ kvargs["end_point"]+ "/"+ kvargs["dir_path"]+ filename
+        logging.info("upload_to_aliyun已将图片「{}」转换为「{}」".format(image_url, new_url))
         return (
-            "https://"
-            + kvargs["bucket"]
-            + "."
-            + kvargs["end_point"]
-            + "/"
-            + kvargs["dir_path"]
-            + filename,
+            new_url,
             "",
         )
 
