@@ -1,12 +1,21 @@
 # youdaonote-pull
 
-此脚本可将有道云的所有的笔记下载到本地。代码参考了 [youdaonote-pull](https://github.com/DeppWang/youdaonote-pull.git)，目前新建有道云笔记爬取下来的格式为JSON，以前的是xml格式，而[youdaonote-pull](https://github.com/DeppWang/youdaonote-pull.git) 目前不支持JSON格式的转换，因此此脚本添加json格式的转换。脚本转换了一些常用的格式，例如，标题、加粗、表格、图片、文件、列表等，有些格式和属性可能没有考虑到，笔记可能有些缺失，下载下来后，请检查一下。
+此脚本可将有道云的所有的笔记下载到本地。代码参考了 [youdaonote-pull](https://github.com/DeppWang/youdaonote-pull.git)，目前新建有道云笔记爬取下来的格式为JSON，以前的是xml格式，而[youdaonote-pull](https://github.com/DeppWang/youdaonote-pull.git) 目前不支持JSON格式的转换，因此此脚本添加json格式的转换。脚本转换了一些常用的格式，例如，标题、加粗、表格、图片、文件、列表、下划线、颜色等，有些格式和属性可能没有考虑到，笔记可能有些缺失，下载下来后，请检查一下。
 
 ## 功能
+
+### 常用功能
 
 - 可将所有笔记（文件）按原格式下载到本地
 - 有道云的正常笔记爬取后是 `xml`和 `json`格式，不是正常笔记内容，需要**将其转换为 `Markdown`格式**
 - 由于有道云笔记图床图片不能在有道云笔记外显示，**默认将其下载到本地，或指定上传到 [SM.MS](https://sm.ms)**
+
+### 功能优化
+
+图片名字方案
+
+* 使用文件名+\_image_index.png作为图片的文件名。优点就是很容易知道图片是哪个笔记的，缺点就是有道云上的笔记改名字后，重新下载下来，旧笔记的图片还会存在，占用空间，需要手动清理，笔记麻烦
+* 通过图片内容生成md5，使用md5作为图片的文件名。优点是笔记改名后，图片内容不变，文件名也不会变，那就无须重新写入；缺点就是图片不好找，不过一般情况是在笔记中看图片，也不会找实际的图片，这个影响好像也不大。
 
 ## 使用步骤
 
@@ -122,12 +131,13 @@ app-venv/bin/pip install -r requirements.txt
 ```
 
 ## Cookie获取js脚本
-用上面的方式寻找Cookie让人眼瞎  
-因此编写此脚本  
-使用方式：   
-浏览器F12打开开发者工具，找到控制台把脚本粘贴进去，替换tmp_cookie的值  
-回车，即可得到一份身份认证Cookie配置文件  
-（YNOTE_SESS属性有HttpOnly属性，不然这个脚本可以更简单）  
+
+用上面的方式寻找Cookie让人眼瞎
+因此编写此脚本
+使用方式：
+浏览器F12打开开发者工具，找到控制台把脚本粘贴进去，替换tmp_cookie的值
+回车，即可得到一份身份认证Cookie配置文件
+（YNOTE_SESS属性有HttpOnly属性，不然这个脚本可以更简单）
 
 ```javascript
 var tmp_cookie = '这里把上图Cookie属性的值丢进来'
@@ -158,7 +168,6 @@ var formattedCookies = formatCookies(cookies);
 // 网站屏蔽了日志或者设置了console的日志级别，因此这里使用warn级别，可以正常打印
 console.warn(JSON.stringify(formattedCookies, null, 2))
 ```
-
 
 - 提示：脚本单纯本地运行，不用担心你的 `Cookies` 泄露
 
@@ -213,7 +222,6 @@ app-venv/bin/python pull_notes.py # 虚拟环境
 如果某个笔记拉取失败，可能是笔记格式比较旧，可以新建一个新笔记，把旧笔记内容复制到新笔记，重新拉取，基本都可以解决。
 
 建议笔记名称不要使用特殊符号，例如：#、/、:、空格、英文括号等，可以使用_和-符号替代，不然容易报错
-
 
 ### 三、多次导出
 

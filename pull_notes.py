@@ -196,26 +196,6 @@ class YoudaoNotePull(object):
             is_note = True if content == b"<?xml" else False
         return is_note
 
-    # def judge_type(self, noteType: int, orgEditorType: int) -> int:
-    #     """
-    #     判断返回内容
-    #     :param entryType: int
-    #     :param orgEditorType: int
-    #     :return: note_type: int
-    #     """
-    #     note_type = 0
-
-    #     #  返回xml格式的note笔记内容,noteType == 0 and orgEditorType == 1
-    #     if noteType == 0 and orgEditorType == 1:
-    #         note_type = 1
-    #     # 返回json格式的note笔记内容
-    #     elif  (noteType == 7 or noteType == 5) and orgEditorType == 1:
-    #         note_type = 2
-    #     # 返回md文件内容
-    #     elif  noteType == 0 and orgEditorType == 0:
-    #         note_type = 3
-    #     return note_type
-
     def judge_type(self, file_id: str, youdao_file_suffix: str, local_dir: str, file_name: str) -> int:
         """
         判断返回内容
@@ -270,12 +250,12 @@ class YoudaoNotePull(object):
             except Exception as e2:
                 logging.error(f'{file_path} 笔记转换 MarkDown 失败，将跳过', e2)
         elif note_type == 2:
-            new_file_path = YoudaoNoteConvert.covert_json_to_markdown(file_path)
+            new_file_path = YoudaoNoteConvert.covert_json_to_markdown(file_path,is_delete=False)
         elif note_type == 3:
             YoudaoNoteConvert.markdown_filter(file_path)
             new_file_path = file_path
+            
         # 迁移附件和图片
-
         if os.path.exists(new_file_path):
             pull_image = PullImages(self.youdaonote_api, self.smms_secret_token, self.is_relative_path)
             pull_image.migration_ydnote_url(new_file_path)

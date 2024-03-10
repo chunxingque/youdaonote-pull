@@ -160,13 +160,17 @@ class jsonConvert(object):
     json 转换规则
     """
 
-    def get_common_text(self, content: dict) -> Tuple[list, str]:
-        """获取通常文本
-        :return
-            text(text): 文本内容
-        """
+    def get_common_text(self, content: dict,is_add_attr: bool=True) -> Tuple[list, str]:
+        """获取文本,并在文本上添加属性
 
-        # text_list = content.get('5')[0].get('7')
+        Args:
+            content (dict): 内容
+            is_add_attr (bool, optional): 文本是否添加属性. Defaults to True.
+
+        Returns:
+            Tuple[list, str]: 文本内容
+        """
+        
         text = ''
         five_contents = content.get('5')
         # # 判断是否是普通文本
@@ -177,12 +181,12 @@ class jsonConvert(object):
                 text = seven_contents[0].get('8')
                 # 9文本属性
                 text_attrs = seven_contents[0].get('9')
-                if text and text_attrs:
+                if text and text_attrs and is_add_attr:
                     text = self.convert_text_attribute(text, text_attrs)
         return text
 
     def convert_text_func(self, content) -> str:
-        """ 正常文本、粗体、斜体、删除线、链接"""
+        """ 正常文本、粗体、斜体、删除线、链接、颜色、下划线"""
         all_text = ''
         one_five_contents = content.get('5')
         if one_five_contents:
@@ -196,14 +200,18 @@ class jsonConvert(object):
 
                 # 获取文本和属性
                 if seven_contents and not two_five_contents:
-                    text = seven_contents[0].get('8')
-                    text_attrs = seven_contents[0].get('9')
-                    if text and text_attrs:
-                        text = self.convert_text_attribute(text, text_attrs)
+                    text=''
+                    for seven_content in seven_contents:
+                        split_text = seven_content.get('8')
+                        split_text_attrs = seven_content.get('9')
+                        if split_text and split_text_attrs:
+                            split_text = self.convert_text_attribute(split_text, split_text_attrs)
+                        text += split_text
 
                 # 链接类型        
                 elif text_type == "li" and two_five_contents:
-                    source_text = self.get_common_text(one_five_content)
+                    # 为兼容obsidian，链接类型不添加属性
+                    source_text = self.get_common_text(one_five_content,is_add_attr=False)
                     # 附加信息
                     four_contents = one_five_content.get('4')
                     if four_contents:
@@ -227,7 +235,12 @@ class jsonConvert(object):
                 elif attr['2'] == "i":
                     # 斜体
                     text = f"*{text}*"
-
+                elif attr['2'] == "u":
+                    # 下划线
+                    text = f"<u>{text}</u>"
+                elif attr['2'] == "c":
+                    # 颜色
+                    text = f'<font color= "{attr["0"]}">{text}</font>'
         return text
 
     def convert_h_func(self, content) -> str:
@@ -428,7 +441,7 @@ class YoudaoNoteConvert(object):
             type = content.get('6')
             # 根据类型处理，无类型的为普通文本
             if type:
-                convert_func = getattr(jsonConvert(), 'convert_{}_func'.format(type), None)
+                convert_func = getattr(jsonConvert(), f'convert_{type}_func', None)
                 # 如果没有转换，显示错误
                 if not convert_func:
                     # line_content = f"该类型{type},不支持转换！！！"
@@ -437,19 +450,22 @@ class YoudaoNoteConvert(object):
                     line_content = convert_func(content)
             else:
                 line_content = jsonConvert().convert_text_func(content)
-
-            # 判断是否有内容
-            if line_content:
-                new_content_list.append(line_content)
-        return f'\r\n\r\n'.join(new_content_list)  # 换行 1 行
+                
+            new_content_list.append(line_content)
+        return f'\r\n'.join(new_content_list)  # 换行 1 行
 
     @staticmethod
-    def covert_json_to_markdown(file_path) -> str:
+    def covert_json_to_markdown(file_path, is_delete: bool=True) -> str:
+        """转换 Json 为 MarkDown
+
+        Args:
+            file_path (_type_): 文件路径
+            is_delete (bool, optional): 是否删除转换前的旧文件. Defaults to True.
+
+        Returns:
+            str: 转换后的文件路径
         """
-        转换 Json 为 MarkDown
-        :param file_path:
-        :return:
-        """
+
         base = os.path.splitext(file_path)[0]
         new_file_path = ''.join([base, MARKDOWN_SUFFIX])
         # 如果文件为空，结束
@@ -460,8 +476,9 @@ class YoudaoNoteConvert(object):
         with open(new_file_path, 'wb') as f:
             f.write(new_content.encode('utf-8'))
         # 删除旧文件
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        if is_delete:
+            if os.path.exists(file_path):
+                os.remove(file_path)
         return new_file_path
 
     @staticmethod
@@ -478,9 +495,5 @@ class YoudaoNoteConvert(object):
 
 
 if __name__ == '__main__':
-    path = "./test/test4.json"
-    # YoudaoNoteConvert.markdown_filter(path)
-    # line_content = jsonConvert().convert_text_func(json)
-    # print(line_content)
-    YoudaoNoteConvert.covert_json_to_markdown(path)
-    # YoudaoNoteConvert.covert_xml_to_markdown(path)
+    path = "./test/test.json"
+    YoudaoNoteConvert.covert_json_to_markdown(path,False)
