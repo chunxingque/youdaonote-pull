@@ -292,11 +292,10 @@ class jsonConvert(object):
         text = self.get_common_text(content=content)
         is_ordered = content.get('4').get('lt')
         if is_ordered == 'unordered':
-            return '- {text}'.format(text=text)
+            return f'- {text}'
         elif is_ordered == 'ordered':
             # 有序列表都设置为1,有些md编辑自动转为有序列表
-            return '1. {text}'.format(text=text)
-        # return '- {text}'.format(text=text)
+            return f'1. {text}'
 
     def convert_t_func(self, content):
         """
@@ -304,7 +303,7 @@ class jsonConvert(object):
         """
         nl = '\r\n'  # 考虑 Windows 系统，换行符设为 \r\n
         tr_list = content['5']
-        table_lines = ''
+        table_lines = '\r\n'
 
         for index, tc in enumerate(tr_list):
             table_content_list = tc['5']
