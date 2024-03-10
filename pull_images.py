@@ -216,7 +216,7 @@ class PullImages():
         :param name:
         :return:
         """
-        # 去除换行符,首尾的空格,文件名有空格识别不出图片
+        # 去除换行符,首尾的空格和一些特殊字符
         name = name.strip()
         regex_symbol = re.compile(r'[\\/:\*\?"<>\|、]')  # 符号：\ / : * ? " < > | ( )
         name = regex_symbol.sub('_', name)
