@@ -130,7 +130,7 @@ app-venv/bin/pip install -r requirements.txt
 }
 ```
 
-## Cookie获取js脚本
+##### Cookie获取js脚本
 
 用上面的方式寻找Cookie让人眼瞎
 因此编写此脚本
@@ -236,14 +236,31 @@ python  pull_notes.py   # Windows
 
 更新时，会重新下载文件并覆盖原文件，图片也会重新下载。
 
+
+## 代码调试
+
+
+
+### 格式转换调试
+
+目前有道云新版的笔记采用JSON格式，转换JSON格式出现问题时，需要提供详细内容和截图等，有能力的，登录有道云的web端，获取有问题笔记的JSON文件，提供给我，方便我代码调试。
+
+有道云JSON格式： `test/test.json`
+
+转换好的md文件：`test/test.md`
+
+格式转换测试
+
+```
+python3 convert.py
+```
+
+
 ## 注意事项
 
 1. 如果你自己修改脚本，注意不要将 `cookies.json` 文件 `push` 到 GitHub
 2. 如果你不是开发者，可能对上面的命令行操作有所陌生，建议按步骤慢慢操作一遍
 3. 请确认代码是否为最新，有问题请先看 [issue](https://github.com/chunxingque/youdaonote-pull/issues) 是否存在，不存在再提 issue
-   ```bash
-   git pull origin master  # 更新代码
-   ```
 
 正常用户浏览器操作时，浏览器（前端）调用服务器（后端）接口，接口返回文件内容由前端渲染显示。原理是[找到有道云笔记的接口](https://depp.wang/2020/06/11/how-to-find-the-api-of-a-website-eg-note-youdao-com)，模拟操作接口，将前端显示改为存放到本地。Xml 转换为 Markdown，借助了 [xml.etree.ElementTreeI](http://docs.python.org/3.7/library/xml.etree.elementtree.html)
 

@@ -159,12 +159,12 @@ class jsonConvert(object):
     """
     json 转换规则
     """
-
-    def get_common_text(self, content: dict,is_add_attr: bool=True) -> Tuple[list, str]:
-        """获取文本,并在文本上添加属性
+    
+    def get_five_text(self, five_contents: list,is_add_attr: bool=True, text_type: str=None) -> str:
+        """键5是一个列表,遍历键5获取文本和添加属性,返回带属性的文本
 
         Args:
-            content (dict): 内容
+            five_contents (list): 内容
             is_add_attr (bool, optional): 文本是否添加属性. Defaults to True.
 
         Returns:
@@ -172,58 +172,70 @@ class jsonConvert(object):
         """
         
         text = ''
-        five_contents = content.get('5')
         # # 判断是否是普通文本
         if five_contents:
-            seven_contents = five_contents[0].get('7')
-            if seven_contents:
-                # 8文本 
-                text = seven_contents[0].get('8')
-                # 9文本属性
-                text_attrs = seven_contents[0].get('9')
-                if text and text_attrs and is_add_attr:
-                    text = self.convert_text_attribute(text, text_attrs)
+            for five_content in five_contents:
+                seven_contents = five_content.get('7')
+                next_five_contents =  five_content.get('5')
+                if seven_contents:
+                    text = self.get_seven_text(seven_contents=seven_contents, is_add_attr=is_add_attr)
+                elif next_five_contents:
+                    split_text = self.get_five_text(next_five_contents, is_add_attr)
+                    if text_type == "table":
+                        text = text + '<br />' + split_text
+                    else:
+                        text = text + '\r\n' + split_text
         return text
+    
+    def get_seven_text(self, seven_contents: list,is_add_attr: bool=True) -> str:
+        """键5是一个列表,遍历键5获取文本和添加属性,返回带属性的文本
 
-    def convert_text_func(self, content) -> str:
+        Args:
+            seven_contents (list): 内容
+            is_add_attr (bool, optional): 文本是否添加属性. Defaults to True.
+
+        Returns:
+            Tuple[list, str]: 文本内容
+        """
+        
+        text = ''
+        for seven_content in seven_contents:
+            split_text = seven_content.get('8')
+            split_text_attrs = seven_content.get('9')
+            if split_text and split_text_attrs and is_add_attr:
+                split_text = self.convert_text_attribute(split_text, split_text_attrs)
+            text += split_text
+        return text
+    
+    def convert_text_func(self, content: dict, is_add_attr: bool=True) -> str:
         """ 正常文本、粗体、斜体、删除线、链接、颜色、下划线"""
-        all_text = ''
+        line_text = '' # 每行文本
         one_five_contents = content.get('5')
         if one_five_contents:
             for one_five_content in one_five_contents:
-                # 包含6和7
-                two_five_contents = one_five_content.get('5')
+                text=''
+                next_five_contents: list =  one_five_content.get('5')
                 # 文本类型
                 text_type = one_five_content.get('6')
                 # 文本和属性
                 seven_contents = one_five_content.get('7')
-
-                # 获取文本和属性
-                if seven_contents and not two_five_contents:
-                    text=''
-                    for seven_content in seven_contents:
-                        split_text = seven_content.get('8')
-                        split_text_attrs = seven_content.get('9')
-                        if split_text and split_text_attrs:
-                            split_text = self.convert_text_attribute(split_text, split_text_attrs)
-                        text += split_text
-
-                # 链接类型        
-                elif text_type == "li" and two_five_contents:
-                    # 为兼容obsidian，链接类型不添加属性
-                    source_text = self.get_common_text(one_five_content,is_add_attr=False)
+                
+                if text_type == 'li':
+                     # 为兼容obsidian，链接类型不添加属性
+                    source_text = self.convert_text_func(one_five_content,is_add_attr)
                     # 附加信息
                     four_contents = one_five_content.get('4')
                     if four_contents:
                         hf = four_contents.get('hf')
-                        text = f'[{source_text}]({hf})'
-                    else:
-                        text = ''
-                else:
-                    text = ''
+                        split_text = f'[{source_text}]({hf})'
+                        text += split_text        
+                elif seven_contents:
+                    text = self.get_seven_text(seven_contents=seven_contents, is_add_attr=is_add_attr)
+                elif next_five_contents:
+                    text = self.get_five_text(next_five_contents,is_add_attr)
                 if text:
-                    all_text += text
-        return all_text
+                    line_text += text
+        return line_text
 
     def convert_text_attribute(self, text: str, text_attrs: list):
         """文本属性"""
@@ -246,7 +258,7 @@ class jsonConvert(object):
     def convert_h_func(self, content) -> str:
         """标题"""
         type_name = content.get('4').get('l')
-        text = self.get_common_text(content=content)
+        text = self.convert_text_func(content=content)
         if text and type_name:
             level_str = type_name.replace('h', '')
             level = int(level_str)
@@ -270,7 +282,7 @@ class jsonConvert(object):
         codes: list = content.get('5')
         code_block = ""
         for code in codes:
-            text = self.get_common_text(code)
+            text = self.convert_text_func(code)
             if text:
                 code_block += text + '\n'
 
@@ -281,7 +293,7 @@ class jsonConvert(object):
         q_text_list = content['5']
         text = ''
         for q_text_dict in q_text_list:
-            q_text = self.get_common_text(q_text_dict)
+            q_text = self.convert_text_func(q_text_dict)
             # 去除第一行的换行
             q_text = q_text.replace('\n', '')
             text += "> {q_text}\n".format(q_text=q_text)
@@ -289,7 +301,7 @@ class jsonConvert(object):
 
     def convert_l_func(self, content):
         """有序列表和无序列表,有序列表转成无序列表"""
-        text = self.get_common_text(content=content)
+        text = self.convert_text_func(content=content)
         is_ordered = content.get('4').get('lt')
         if is_ordered == 'unordered':
             return f'- {text}'
@@ -312,13 +324,9 @@ class jsonConvert(object):
                 table_line = '| -- ' * table_content_len + '|\n| '
             else:
                 table_line = '| '
+            
             for table_content in table_content_list:
-                table_text_list = table_content.get('5')[0].get('5')[0].get('7')
-                if table_text_list:
-                    table_text = table_text_list[0]['8']
-                else:
-                    table_text = " "
-                # print(table_text)
+                table_text = self.get_five_text(table_content.get("5"),text_type="table")
                 table_line = table_line + table_text + ' | '
             table_lines = table_lines + table_line + f'{nl}'
         return table_lines

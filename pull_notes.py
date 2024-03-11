@@ -250,7 +250,7 @@ class YoudaoNotePull(object):
             except Exception as e2:
                 logging.error(f'{file_path} 笔记转换 MarkDown 失败，将跳过', e2)
         elif note_type == 2:
-            new_file_path = YoudaoNoteConvert.covert_json_to_markdown(file_path,is_delete=False)
+            new_file_path = YoudaoNoteConvert.covert_json_to_markdown(file_path,is_delete=True)
         elif note_type == 3:
             YoudaoNoteConvert.markdown_filter(file_path)
             new_file_path = file_path
