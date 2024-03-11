@@ -297,6 +297,10 @@ class jsonConvert(object):
             # 有序列表都设置为1,有些md编辑自动转为有序列表
             return f'1. {text}'
 
+    def convert_hr_func(self, content):
+        # hr分隔符
+        return "___"
+
     def convert_t_func(self, content):
         """
         表格转换
