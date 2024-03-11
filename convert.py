@@ -160,6 +160,26 @@ class jsonConvert(object):
     json 转换规则
     """
 
+    def convert_json_contents(json_contents) -> list:
+        """ 通用转换多行文本 """
+        new_content_list = []
+        for content in json_contents:
+            type = content.get('6')
+            # 根据类型处理，无类型的为普通文本
+            if type:
+                convert_func = getattr(jsonConvert(), f'convert_{type}_func', None)
+                # 如果没有转换，显示错误
+                if not convert_func:
+                    # line_content = f"该类型{type},不支持转换！！！"
+                    line_content = jsonConvert().convert_text_func(content)
+                else:
+                    line_content = convert_func(content)
+            else:
+                line_content = jsonConvert().convert_text_func(content)
+                
+            new_content_list.append(line_content)
+        return new_content_list
+
     def get_common_text(self, content: dict,is_add_attr: bool=True) -> Tuple[list, str]:
         """获取文本,并在文本上添加属性
 
@@ -274,7 +294,7 @@ class jsonConvert(object):
             if text:
                 code_block += text + '\n'
 
-        return '```{language}\r\n{code_block}```'.format(language=language, code_block=code_block)
+        return f'```{language}\r\n{code_block}```'
 
     def convert_q_func(self, content):
         """引用"""
@@ -309,21 +329,19 @@ class jsonConvert(object):
         tr_list = content['5']
         table_lines = '\r\n'
 
-        for index, tc in enumerate(tr_list):
-            table_content_list = tc['5']
+        for index, tr in enumerate(tr_list):
+            table_content_list = tr['5']
             table_content_len = len(table_content_list)
             if index == 1:
                 table_line = '| -- ' * table_content_len + '|\n| '
             else:
                 table_line = '| '
-            for table_content in table_content_list:
-                table_text_list = table_content.get('5')[0].get('5')[0].get('7')
-                if table_text_list:
-                    table_text = table_text_list[0]['8']
-                else:
-                    table_text = " "
-                # print(table_text)
-                table_line = table_line + table_text + ' | '
+            for tc in table_content_list:
+                content_list = jsonConvert.convert_json_contents(tc.get('5'))
+                content = nl.join(content_list)
+                content = content.replace('\r\n', '<br>') #兼容表格内代码块文本换行
+                content = content.replace('\n', '<br>')
+                table_line = table_line + content + ' | '
             table_lines = table_lines + table_line + f'{nl}'
         return table_lines
 
@@ -430,7 +448,6 @@ class YoudaoNoteConvert(object):
 
     @staticmethod
     def covert_json_to_markdown_content(file_path):
-        new_content_list = []
         # 加载json文件
         with open(file_path, 'r', encoding='utf-8') as f:
             try:
@@ -440,21 +457,7 @@ class YoudaoNoteConvert(object):
                 json_data = {}
 
         json_contents = json_data['5']
-        for content in json_contents:
-            type = content.get('6')
-            # 根据类型处理，无类型的为普通文本
-            if type:
-                convert_func = getattr(jsonConvert(), f'convert_{type}_func', None)
-                # 如果没有转换，显示错误
-                if not convert_func:
-                    # line_content = f"该类型{type},不支持转换！！！"
-                    line_content = jsonConvert().convert_text_func(content)
-                else:
-                    line_content = convert_func(content)
-            else:
-                line_content = jsonConvert().convert_text_func(content)
-                
-            new_content_list.append(line_content)
+        new_content_list = jsonConvert.convert_json_contents(json_contents)
         return f'\r\n'.join(new_content_list)  # 换行 1 行
 
     @staticmethod
