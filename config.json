@@ -2,6 +2,14 @@
     "local_dir": "./obsidian",
     "ydnote_dir": "",
     "smms_secret_token": "",
-    "is_relative_path": true
+    "is_relative_path": false,
+    "aliyun_oss": {
+        "access_key_id": "xxx",
+        "access_key_secret": "xxxx",
+        "security_token": "",
+        "end_point": "oss-cn-beijing.aliyuncs.com",
+        "bucket": "xxxxx",
+        "dir_path": "youdaonote/"
+    }
 }
 
