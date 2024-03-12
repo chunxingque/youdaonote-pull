@@ -188,7 +188,7 @@ class jsonConvert(object):
         return text
     
     def get_seven_text(self, seven_contents: list,is_add_attr: bool=True) -> str:
-        """键5是一个列表,遍历键5获取文本和添加属性,返回带属性的文本
+        """键7是一个列表,遍历键7获取文本和添加属性,返回带属性的文本
 
         Args:
             seven_contents (list): 内容
@@ -449,9 +449,7 @@ class YoudaoNoteConvert(object):
             # 根据类型处理，无类型的为普通文本
             if type:
                 convert_func = getattr(jsonConvert(), f'convert_{type}_func', None)
-                # 如果没有转换，显示错误
                 if not convert_func:
-                    # line_content = f"该类型{type},不支持转换！！！"
                     line_content = jsonConvert().convert_text_func(content)
                 else:
                     line_content = convert_func(content)
