@@ -47,7 +47,11 @@ class YoudaoNotePull(object):
         config_dict, error_msg = covert_config(CONFIG_PATH)
         if error_msg:
             return '', error_msg
-        local_dir, error_msg = self._check_local_dir(local_dir=config_dict['local_dir'])
+        # 有道笔记根目录
+        ydnote_dir = config_dict['ydnote_dir']
+        # 本地目录
+        local_dir = os.path.join(config_dict['local_dir'],ydnote_dir)
+        local_dir, error_msg = self._check_local_dir(local_dir = local_dir)
         if error_msg:
             return '', error_msg
         self.root_local_dir = local_dir
@@ -57,7 +61,8 @@ class YoudaoNotePull(object):
             return '', error_msg
         self.smms_secret_token = config_dict['smms_secret_token']
         self.is_relative_path = config_dict['is_relative_path']
-        return self._get_ydnote_dir_id(ydnote_dir=config_dict['ydnote_dir'])
+        
+        return self._get_ydnote_dir_id(ydnote_dir=ydnote_dir)
 
     def pull_dir_by_id_recursively(self, dir_id, local_dir):
         """
@@ -76,8 +81,6 @@ class YoudaoNotePull(object):
             id = file_entry['id']
             file_name = file_entry['name']
             file_name = self._optimize_file_name(file_name)
-            # noteType = file_entry['noteType']
-            # orgEditorType = file_entry['orgEditorType']
             if file_entry['dir']:
                 sub_dir = os.path.join(local_dir, file_name).replace('\\', '/')
                 # 判断本地文件夹是否存在
@@ -99,14 +102,15 @@ class YoudaoNotePull(object):
         if not local_dir:
             add_dir = test_default_dir if test_default_dir else 'youdaonote'
             # 兼容 Windows 系统，将路径分隔符（\\）替换为 /
-            local_dir = os.path.join(os.getcwd(), add_dir).replace('\\', '/')
+            local_dir = os.path.join(os.getcwd(), add_dir)
 
         # 如果指定的本地文件夹不存在，创建文件夹
         if not os.path.exists(local_dir):
             try:
-                os.mkdir(local_dir)
+                os.makedirs(local_dir)
             except:
                 return '', '请检查「{}」上层文件夹是否存在，并使用绝对路径！'.format(local_dir)
+        local_dir = local_dir.replace('\\', '/')
         return local_dir, ''
 
     def _get_ydnote_dir_id(self, ydnote_dir) -> Tuple[str, str]:

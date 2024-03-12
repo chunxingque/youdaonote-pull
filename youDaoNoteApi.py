@@ -7,8 +7,9 @@ class YoudaoNoteApi(object):
     有道云笔记 API 封装
     原理：https://depp.wang/2020/06/11/how-to-find-the-api-of-a-website-eg-note-youdao-com/
     """
-
+    # 获取根目录id
     ROOT_ID_URL = 'https://note.youdao.com/yws/api/personal/file?method=getByPath&keyfrom=web&cstk={cstk}'
+    # 获取指定目录ID的基本信息，以及该目录下的文件和目录
     DIR_MES_URL = 'https://note.youdao.com/yws/api/personal/file/{dir_id}?all=true&f=true&len=1000&sort=1' \
                   '&isReverse=false&method=listPageByParentId&keyfrom=web&cstk={cstk}'
     FILE_URL = 'https://note.youdao.com/yws/api/personal/sync?method=download&_system=macos&_systemVersion=&' \

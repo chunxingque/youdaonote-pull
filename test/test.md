@@ -18,7 +18,7 @@
 ***这个是粗体加斜体***
 <u>这个是下划线</u>
 这是<font color= "#F33232">标红</font>的字体
-[<font color= "#0366d6"><u>***我是个链接***</u></font>](https://www.baidu.com/)
+***点击***[百度链接](https://www.baidu.com/)***，生活更精彩***
 
 上面是空行
 一个一键导出 / 备份「有道云笔记」所有笔记的 Python 脚本
@@ -30,17 +30,18 @@
 
 这是要被删除的内容。
 
-| <br />姓名 | <br />年龄 | <br />工作 | 
+| 姓名 | 年龄 | 工作 | 
 | -- | -- | -- |
-| <br />小可爱 | <br />18 | <br />**我加粗，我是斜体** | 
-| <br />小小勇敢 | <br />20 | <br />爬棵勇敢树，<font color= "#F33232">我标红</font> | 
-| <br />小小小机智 | <br />22 | <br />看一本机智书<br />我换行 | 
-| <br /> | <br /> | <br /> | 
-| <br /> | <br /> | <br /> | 
+| 小可爱 | 18 | **我加粗，我是斜体** | 
+| 小小勇敢 | 20 | 爬棵勇敢树，<font color= "#F33232">我标红</font> | 
+| 小小小机智 | 22 | 看一本机智书<br />我换行 | 
+|  |  | q请点击[百度链接](https://www.baidu.com/)哦 | 
+|  |  |  | 
 
 
 ![](https://note.youdao.com/yws/res/115082/WEBRESOURCE6179a220f8b437030546a7d667d0af53)
 
+下面是代码：
 ```python
 // FileName: HelloWorld.java
                 public class HelloWorld {

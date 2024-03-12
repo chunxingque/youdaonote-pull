@@ -160,33 +160,6 @@ class jsonConvert(object):
     json 转换规则
     """
     
-    def get_five_text(self, five_contents: list,is_add_attr: bool=True, text_type: str=None) -> str:
-        """键5是一个列表,遍历键5获取文本和添加属性,返回带属性的文本
-
-        Args:
-            five_contents (list): 内容
-            is_add_attr (bool, optional): 文本是否添加属性. Defaults to True.
-
-        Returns:
-            Tuple[list, str]: 文本内容
-        """
-        
-        text = ''
-        # # 判断是否是普通文本
-        if five_contents:
-            for five_content in five_contents:
-                seven_contents = five_content.get('7')
-                next_five_contents =  five_content.get('5')
-                if seven_contents:
-                    text = self.get_seven_text(seven_contents=seven_contents, is_add_attr=is_add_attr)
-                elif next_five_contents:
-                    split_text = self.get_five_text(next_five_contents, is_add_attr)
-                    if text_type == "table":
-                        text = text + '<br />' + split_text
-                    else:
-                        text = text + '\r\n' + split_text
-        return text
-    
     def get_seven_text(self, seven_contents: list,is_add_attr: bool=True) -> str:
         """键7是一个列表,遍历键7获取文本和添加属性,返回带属性的文本
 
@@ -207,38 +180,105 @@ class jsonConvert(object):
             text += split_text
         return text
     
-    def convert_text_func(self, content: dict, is_add_attr: bool=True) -> str:
-        """ 正常文本、粗体、斜体、删除线、链接、颜色、下划线"""
-        line_text = '' # 每行文本
-        one_five_contents = content.get('5')
-        if one_five_contents:
-            for one_five_content in one_five_contents:
-                text=''
-                next_five_contents: list =  one_five_content.get('5')
-                # 文本类型
-                text_type = one_five_content.get('6')
-                # 文本和属性
-                seven_contents = one_five_content.get('7')
-                
-                if text_type == 'li':
-                     # 为兼容obsidian，链接类型不添加属性
-                    source_text = self.convert_text_func(one_five_content,is_add_attr)
-                    # 附加信息
-                    four_contents = one_five_content.get('4')
-                    if four_contents:
-                        hf = four_contents.get('hf')
-                        split_text = f'[{source_text}]({hf})'
-                        text += split_text        
-                elif seven_contents:
-                    text = self.get_seven_text(seven_contents=seven_contents, is_add_attr=is_add_attr)
+    def get_five_text(self, five_contents: list,is_add_attr: bool=True) -> str:
+        """键5是一个列表,遍历键5获取文本和添加属性,返回带属性的文本
+
+        Args:
+            five_contents (list): 内容
+            is_add_attr (bool, optional): 文本是否添加属性. Defaults to True.
+
+        Returns:
+            Tuple[list, str]: 文本内容
+        """
+        
+        text_list = []
+        if five_contents:
+            for index,five_content in enumerate(five_contents):
+                seven_contents = five_content.get('7')
+                next_five_contents =  five_content.get('5')
+                # 键7类型
+                if seven_contents:
+                    split_text = self.get_seven_text(seven_contents=seven_contents, is_add_attr=is_add_attr)
+                    text_list.append(split_text)
+                    if index == len(five_contents) - 1:
+                        return ''.join(text_list)
+                # 键5类型
                 elif next_five_contents:
-                    text = self.get_five_text(next_five_contents,is_add_attr)
-                if text:
-                    line_text += text
-        return line_text
+                    one_line_text = self.get_five_text(next_five_contents, is_add_attr)
+                    text_list.append(one_line_text)
+                    if index == len(five_contents) - 1:
+                        return ''.join(text_list)
+                # 其他类型返回空
+                else:
+                    return ''
+        else:
+            return ''
+
+    
+    def convert_text_func(self, content: dict, is_add_attr: bool=True) -> str:
+        """ 正常文本 """
+        text_list=[]
+        five_contents = content.get('5')
+        if five_contents:
+            for index,five_content in enumerate(five_contents):
+                # 下个键5
+                next_five_contents: list =  five_content.get('5')
+                # 键6类型
+                six_type = five_content.get('6')
+                # 文本和属性
+                seven_contents = five_content.get('7')
+                
+                # 键6类型
+                if six_type:
+                    # 已知类型为li,tc
+                    convert_func = getattr(self,f'convert_{six_type}_func', None)
+                    if convert_func:
+                        split_text = convert_func(five_content)
+                    else:
+                        split_text = self.convert_text_func(five_content)
+                        
+                    text_list.append(split_text)
+                    if index == len(five_contents) - 1:
+                       return ''.join(text_list)
+                # 键7类型
+                elif seven_contents:
+                    split_text = self.get_seven_text(seven_contents=seven_contents, is_add_attr=is_add_attr)
+                    text_list.append(split_text)
+                    if index == len(five_contents) - 1:
+                        return ''.join(text_list)
+                # 键5类型
+                elif next_five_contents:
+                    one_line_text = self.get_five_text(next_five_contents, is_add_attr)
+                    text_list.append(one_line_text)
+                    if index == len(five_contents) - 1:
+                        return ''.join(text_list)
+                else:
+                    return ""
+        else:                      
+            return ""
+    
+    
+    def convert_li_func(self,content: dict):
+        """链接
+
+        Args:
+            content (dict): 类型为li的字典
+
+        Returns:
+            _type_: 返回链接
+        """
+        text = ""
+        # 为兼容obsidian，链接类型不添加属性
+        source_text = self.convert_text_func(content,is_add_attr=False)
+        # 附加信息
+        four_content: dict = content.get('4')
+        if four_content:
+            hf = four_content.get('hf')
+            text = f'[{source_text}]({hf})'
+        return text
 
     def convert_text_attribute(self, text: str, text_attrs: list):
-        """文本属性"""
+        """文本属性, 粗体、斜体、删除线、链接、颜色、下划线"""
         if isinstance(text_attrs, list) and text_attrs and text:
             for attr in text_attrs:
                 if attr['2'] == "b":
@@ -302,31 +342,59 @@ class jsonConvert(object):
     def convert_l_func(self, content):
         """有序列表和无序列表,有序列表转成无序列表"""
         text = self.convert_text_func(content=content)
-        is_ordered = content.get('4').get('lt')
-        if is_ordered == 'unordered':
-            return f'- {text}'
-        elif is_ordered == 'ordered':
+        is_ordered = content.get('4').get('lt')   # unordered or ordered
+        if is_ordered == 'ordered':
             # 有序列表都设置为1,有些md编辑自动转为有序列表
             return f'1. {text}'
+        else:
+            return f'- {text}'
+    
+    def convert_tc_func(self, content: dict) -> str:
+        """表格的列
 
-    def convert_t_func(self, content):
+        Args:
+            content (dict): 键6类型为"tc"字典
+
+        Returns:
+            str: 单元格文本
         """
-        表格转换
+        five_content_list: list = content.get('5')
+        table_cell_list = []
+        table_cell_text = ""
+        for item_content in five_content_list:
+            one_line_text = self.convert_text_func(item_content)
+            table_cell_list.append(one_line_text)
+        table_cell_text =  '<br />'.join(table_cell_list)
+        return table_cell_text
+
+    def convert_t_func(self, content: dict) -> str:
+        """表格 
+
+        Args:
+            content (dict): 键6类型为"t"字典
+
+        Returns:
+            str: 整个表格内容
         """
+
         nl = '\r\n'  # 考虑 Windows 系统，换行符设为 \r\n
-        tr_list = content['5']
+        # 行列表
+        table_row_list = content['5']  
         table_lines = '\r\n'
 
-        for index, tc in enumerate(tr_list):
-            table_content_list = tc['5']
-            table_content_len = len(table_content_list)
+        for index, table_row in enumerate(table_row_list):
+            # 列的列表
+            table_column_list = table_row['5']
+            # 列的数量
+            table_content_len = len(table_column_list)
+            
             if index == 1:
                 table_line = '| -- ' * table_content_len + '|\n| '
             else:
                 table_line = '| '
-            
-            for table_content in table_content_list:
-                table_text = self.get_five_text(table_content.get("5"),text_type="table")
+                
+            for table_column in table_column_list:
+                table_text = self.convert_tc_func(table_column)
                 table_line = table_line + table_text + ' | '
             table_lines = table_lines + table_line + f'{nl}'
         return table_lines
@@ -434,6 +502,7 @@ class YoudaoNoteConvert(object):
 
     @staticmethod
     def covert_json_to_markdown_content(file_path):
+        all_text=""
         new_content_list = []
         # 加载json文件
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -456,7 +525,8 @@ class YoudaoNoteConvert(object):
             else:
                 line_content = jsonConvert().convert_text_func(content)
                 
-            new_content_list.append(line_content)
+            new_content_list.append(str(line_content))
+            
         return f'\r\n'.join(new_content_list)  # 换行 1 行
 
     @staticmethod

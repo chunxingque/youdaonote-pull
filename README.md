@@ -1,3 +1,5 @@
+[toc]
+
 # youdaonote-pull
 
 此脚本可将有道云的所有的笔记下载到本地。代码参考了 [youdaonote-pull](https://github.com/DeppWang/youdaonote-pull.git)，目前新建有道云笔记爬取下来的格式为JSON，以前的是xml格式，而[youdaonote-pull](https://github.com/DeppWang/youdaonote-pull.git) 目前不支持JSON格式的转换，因此此脚本添加json格式的转换。脚本转换了一些常用的格式，例如，标题、加粗、表格、图片、文件、列表、下划线、颜色等，有些格式和属性可能没有考虑到，笔记可能有些缺失，下载下来后，请检查一下。
@@ -185,9 +187,9 @@ console.warn(JSON.stringify(formattedCookies, null, 2))
 ```
 
 * `local_dir`：选填，本地存放导出文件的文件夹，不填则默认为当前文件夹
-* `ydnote_dir`：选填，有道云笔记指定导出文件夹名，不填则导出所有文件，只支持有道云笔记根目录的文件夹，不支持直接导出子目录的笔记
+* `ydnote_dir`：选填，有道云笔记根目录，填则会下载该根目录下所有的笔记，这些笔记会下载到路径 `local_dir`+`ydnote_dir`目录下，不填则导出所有文件，注意，该参数不支持直接下载子目录的笔记
 * `smms_secret_token`：选填， [SM.MS](https://sm.ms) 的 `Secret Token`（注册后 -> Dashboard -> API Token），用于上传笔记中有道云图床图片到 SM.MS 图床，不填则只下载到本地（`youdaonote-images` 文件夹），`Markdown` 中使用本地链接
-* `is_relative_path`：选填，在 MD 文件中图片 / 附件是否采用相对路径展示，不填或 false 为绝对路径，true 为相对路径
+* `is_relative_path`：在 MD 文件中图片 / 附件是否采用相对路径展示，默认true
 
 示例：
 
@@ -262,6 +264,9 @@ json数据格式说明
 * 键8是一串字符串，存储着原始文本
 * 键9是一个列表，存储着字典，字典中的键2表示文本的属性(加粗，斜体和颜色等)，键0表示颜色
 
+### 有道云接口说明
+
+获取笔记接口：`https://note.youdao.com/yws/api/personal/sync`
 
 ## 注意事项
 
