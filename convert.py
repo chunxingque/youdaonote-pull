@@ -295,8 +295,15 @@ class jsonConvert(object):
                     text = f'<font color= "{attr["0"]}">{text}</font>'
         return text
 
-    def convert_h_func(self, content) -> str:
-        """标题"""
+    def convert_h_func(self, content: dict) -> str:
+        """标题
+
+        Args:
+            content (dict): 类型为h的字典
+
+        Returns:
+            str: _description_
+        """
         type_name = content.get('4').get('l')
         text = self.convert_text_func(content=content)
         if text and type_name:
