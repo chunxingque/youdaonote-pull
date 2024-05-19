@@ -239,19 +239,19 @@ class jsonConvert(object):
                         
                     text_list.append(split_text)
                     if index == len(five_contents) - 1:
-                       return ''.join(text_list)
+                       return self.optimize_text(''.join(text_list))
                 # 键7类型
                 elif seven_contents:
                     split_text = self.get_seven_text(seven_contents=seven_contents, is_add_attr=is_add_attr)
                     text_list.append(split_text)
                     if index == len(five_contents) - 1:
-                        return ''.join(text_list)
+                        return self.optimize_text(''.join(text_list))
                 # 键5类型
                 elif next_five_contents:
                     one_line_text = self.get_five_text(next_five_contents, is_add_attr)
                     text_list.append(one_line_text)
                     if index == len(five_contents) - 1:
-                        return ''.join(text_list)
+                        return self.optimize_text(''.join(text_list))
                 else:
                     return ""
         else:                      
@@ -433,6 +433,12 @@ class jsonConvert(object):
         original_text = original_text.replace('\n', '<br>')
 
         return original_text
+    
+    @classmethod
+    def optimize_text(cls,text: str):
+        text = text.strip('\r')
+        return text
+        
 
 
 class YoudaoNoteConvert(object):
