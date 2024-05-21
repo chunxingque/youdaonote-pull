@@ -9,6 +9,13 @@ import requests
 import logging
 from public import covert_config
 from youDaoNoteApi import YoudaoNoteApi
+import time
+import oss2
+from oss2.credentials import (
+    EnvironmentVariableCredentialsProvider,
+    CredentialsProvider,
+    Credentials,
+)
 
 REGEX_IMAGE_URL = re.compile(r'!\[.*?\]\((.*?note\.youdao\.com.*?)\)')
 REGEX_ATTACH = re.compile(r'\[(.*?)\]\(((http|https)://note\.youdao\.com.*?)\)')
@@ -57,7 +64,7 @@ class PullImages():
                 continue
             # 将绝对路径替换为相对路径，实现满足 Obsidian 格式要求
             # 将 image_path 路径中 images 之前的路径去掉，只保留以 images 开头的之后的路径
-            if self.is_relative_path and not self.smms_secret_token:
+            if self.is_relative_path and IMAGES in image_path:
                 image_path = image_path[image_path.find(IMAGES):]
 
             image_path = self.url_encode(image_path)
@@ -88,21 +95,27 @@ class PullImages():
         :param image_url:
         :return: new_image_path
         """
+        # 上传smms
         if self.smms_secret_token:
-            # smms_secret_token 不为空，上传到 SM.MS
-            new_file_url, error_msg = ImageUpload.upload_to_smms(youdaonote_api=self.youdaonote_api, 
-                                                                 image_url=image_url,
-                                                                smms_secret_token=self.smms_secret_token)
-            # 如果上传失败，仍下载到本地
+            new_file_url, error_msg = ImageUpload.upload_to_smms(
+                youdaonote_api=self.youdaonote_api,
+                image_url=image_url,
+                smms_secret_token=self.smms_secret_token,
+            )
             if not error_msg:
                 return new_file_url
-            logging.info(error_msg)
-            image_path = self._download_image_url(file_path, image_url, index)
-            return image_path or image_url
-        else:
-            # 当 smms_secret_token 为空（不上传到 SM.MS），下载到图片到本地
-            image_path = self._download_image_url(file_path, image_url, index)
-            return image_path or image_url
+        # 上传阿里云
+        if self.aliyun_oss:
+            new_file_url, error_msg = ImageUpload.upload_to_aliyun(
+                youdaonote_api=self.youdaonote_api,
+                image_url=image_url,
+                **self.aliyun_oss,
+            )
+            if not error_msg:
+                return new_file_url
+        logging.info(error_msg)
+        image_path = self._download_image_url(file_path, image_url, index)
+        return image_path or image_url
 
     def _download_image_url(self, file_path, url, index) -> str:
         """
@@ -233,6 +246,7 @@ class PullImages():
         config_dict, error_msg = covert_config(CONFIG_PATH)
         self.smms_secret_token = config_dict['smms_secret_token']
         self.is_relative_path = config_dict['is_relative_path']
+        self.aliyun_oss = config_dict["aliyun_oss"]
 
     def more_pull_images(self, md_dir: str):
         """遍历文件夹的md文件,拉取md文件有道云的图片和附件
@@ -255,6 +269,22 @@ class PullImages():
         """
         path = path.replace(' ', '%20')
         return path
+
+
+class CustomCredentialsProvider(CredentialsProvider):
+    def __init__(self, access_key_id, access_key_secret, security_token):
+        self.access_key_id = access_key_id
+        self.access_key_secret = access_key_secret
+        self.security_token = security_token
+        if not access_key_id:
+            raise KeyError("Access key id should not be null or empty.")
+        if not access_key_secret:
+            raise KeyError("Secret access key should not be null or empty.")
+
+    def get_credentials(self):
+        return Credentials(
+            self.access_key_id, self.access_key_secret, self.security_token
+        )
 
 
 class ImageUpload(object):
@@ -304,6 +334,47 @@ class ImageUpload(object):
             image_url, smms_secret_token)
         return '', error_msg
 
+    @staticmethod
+    def upload_to_aliyun(youdaonote_api, image_url, **kvargs) -> Tuple[str, str]:
+        from urllib.parse import unquote
+        try:
+            response = youdaonote_api.http_get(image_url)
+        except:
+            error_msg = "下载「{}」失败！图片可能已失效，可浏览器登录有道云笔记后，查看图片是否能正常加载".format(
+                image_url
+            )
+            return "", error_msg
+        try:
+            filename = (
+                response.headers["Content-Disposition"]
+                .split("; ")[1]
+                .replace("filename=", "")
+                .strip('"')
+            )
+        except:
+            error_msg = "下载「{}」失败！filename解析失败".format(image_url)
+            return ("", error_msg)
+        filename = str(int(time.time())) + "-" + filename
+        originname = unquote(filename)
+        content = response.content
+        auth = oss2.ProviderAuth(
+            CustomCredentialsProvider(
+                kvargs["access_key_id"],
+                kvargs["access_key_secret"],
+                kvargs["security_token"],
+            )
+        )
+        bucket = oss2.Bucket(auth, kvargs["end_point"], kvargs["bucket"])
+        result = bucket.put_object(kvargs["dir_path"] + originname, content)
+        if result.status != 200:
+            logging.warn("上传图片至OSS失败，错误信息：{}".format(result.status))
+            return "", "上传图片至OSS失败，错误信息：{}".format(result.status)
+        new_url = "https://" + kvargs["bucket"]+ "."+ kvargs["end_point"]+ "/"+ kvargs["dir_path"]+ filename
+        logging.info("upload_to_aliyun已将图片「{}」转换为「{}」".format(image_url, new_url))
+        return (
+            new_url,
+            "",
+        )
 
 if __name__ == '__main__':
     path = "D:\\obsidian\\obsidian\\其他"
