@@ -19,7 +19,6 @@ NOTE_SUFFIX = '.note'
 IMAGES = 'attachments'
 # 有道云笔记的附件地址
 ATTACH = 'attachments'
-CONFIG_PATH = 'config.json'
 
 
 class PullImages():
@@ -230,7 +229,7 @@ class PullImages():
             return '', error_msg
 
     def load_config(self):
-        config_dict, error_msg = covert_config(CONFIG_PATH)
+        config_dict, error_msg = covert_config()
         self.smms_secret_token = config_dict['smms_secret_token']
         self.is_relative_path = config_dict['is_relative_path']
 

@@ -2,7 +2,7 @@
 
 # youdaonote-pull
 
-此脚本可将有道云的所有的笔记下载到本地。代码参考了 [youdaonote-pull](https://github.com/DeppWang/youdaonote-pull.git)，目前新建有道云笔记爬取下来的格式为JSON，以前的是xml格式，而[youdaonote-pull](https://github.com/DeppWang/youdaonote-pull.git) 目前不支持JSON格式的转换，因此此脚本添加json格式的转换。脚本转换了一些常用的格式，例如，标题、加粗、表格、图片、文件、列表、下划线、颜色等，有些格式和属性可能没有考虑到，笔记可能有些缺失，下载下来后，请检查一下。
+此脚本可将有道云的所有的笔记下载到本地，可以作为有道云笔记的迁移或者本地备份。脚本参考了 [youdaonote-pull](https://github.com/DeppWang/youdaonote-pull.git)，在其基础上添加了json格式的转换。目前新建有道云笔记爬取下来的格式为JSON，以前的是xml格式。脚本转换了一些常用的格式，例如，标题、加粗、表格、图片、文件、列表、下划线、颜色等，有些格式和属性可能没有考虑到，笔记可能有些缺失，下载下来后，请检查一下。
 
 ## 功能
 
@@ -132,7 +132,8 @@ app-venv/bin/pip install -r requirements.txt
 }
 ```
 
-##### Cookie获取js脚本
+
+**Cookie获取js脚本**
 
 用上面的方式寻找Cookie让人眼瞎
 因此编写此脚本
@@ -187,7 +188,7 @@ console.warn(JSON.stringify(formattedCookies, null, 2))
 ```
 
 * `local_dir`：选填，本地存放导出文件的文件夹，不填则默认为当前文件夹
-* `ydnote_dir`：选填，有道云笔记根目录，填则会下载该根目录下所有的笔记，这些笔记会下载到路径 `local_dir`+`ydnote_dir`目录下，不填则导出所有文件，注意，该参数不支持直接下载子目录的笔记
+* `ydnote_dir`：选填，有道云笔记目录，默认会下载该所有的笔记，支持多层目录，例如：根目录/子目录/子子目录
 * `smms_secret_token`：选填， [SM.MS](https://sm.ms) 的 `Secret Token`（注册后 -> Dashboard -> API Token），用于上传笔记中有道云图床图片到 SM.MS 图床，不填则只下载到本地（`youdaonote-images` 文件夹），`Markdown` 中使用本地链接
 * `is_relative_path`：在 MD 文件中图片 / 附件是否采用相对路径展示，默认true
 
@@ -199,7 +200,8 @@ console.warn(JSON.stringify(formattedCookies, null, 2))
 {
     "local_dir": "/Users/deppwang/Documents/youdaonote-pull/test",
     "ydnote_dir": "",
-    "smms_secret_token": "SGSLk9yWdTe4RenXYqEPWkqVrx0Yexample"
+    "smms_secret_token": "SGSLk9yWdTe4RenXYqEPWkqVrx0Yexample",
+    "is_relative_path": true
 }
 ```
 
@@ -209,7 +211,8 @@ console.warn(JSON.stringify(formattedCookies, null, 2))
 {
     "local_dir": "D:/Documents/youdaonote-pull/test",
     "ydnote_dir": "",
-    "smms_secret_token": "SGSLk9yWdTe4RenXYqEPWkqVrx0Yexample"
+    "smms_secret_token": "SGSLk9yWdTe4RenXYqEPWkqVrx0Yexample",
+    "is_relative_path": true
 }
 ```
 

@@ -2,6 +2,7 @@ from typing import Tuple
 import json
 from enum import Enum
 
+CONFIG_PATH = 'config.json'
 
 class FileActionEnum(Enum):
     CONTINUE = "跳过"
@@ -9,7 +10,7 @@ class FileActionEnum(Enum):
     UPDATE = "更新"
 
 
-def covert_config(config_path=None) -> Tuple[dict, str]:
+def covert_config(config_path: str=None) -> Tuple[dict, str]:
         """
         转换配置文件为 dict
         :param config_path: config 文件路径

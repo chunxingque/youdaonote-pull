@@ -24,53 +24,57 @@ from youDaoNoteApi import YoudaoNoteApi
 
 MARKDOWN_SUFFIX = '.md'
 NOTE_SUFFIX = '.note'
-CONFIG_PATH = 'config.json'
 
 
 class YoudaoNotePull(object):
     """
     有道云笔记 Pull 封装
     """
-    CONFIG_PATH = 'config.json'
 
     def __init__(self):
-        self.root_local_dir = None  # 本地文件根目录
+        self.local_root_dir = None    # 本地根目录
         self.youdaonote_api = None
         self.smms_secret_token = None
         self.is_relative_path = None  # 是否使用相对路径
+        self.ydnote_dir = ""          # 有道笔记目录
+        self.ydnote_dir_list = []     # 有道笔记目录分割列表
+        self.load_config()
+    
+    
+    def load_config(self):
+        config_dict, error_msg = covert_config()
+        if error_msg:
+            return '', error_msg
+        # 有道笔记目录
+        self.ydnote_dir: str = config_dict['ydnote_dir']
+        self.ydnote_dir_list = self.ydnote_dir.split('/')
+        self.smms_secret_token = config_dict['smms_secret_token']
+        self.is_relative_path = config_dict['is_relative_path']
+        self.local_root_dir = config_dict['local_dir']
 
     def get_ydnote_dir_id(self):
         """
-        获取有道云笔记根目录或指定目录 ID
+        获取有道云笔记根目录
         :return:
         """
-        config_dict, error_msg = covert_config(CONFIG_PATH)
+        
+        self.local_root_dir, error_msg = self._check_local_dir(local_dir = self.local_root_dir)
         if error_msg:
             return '', error_msg
-        # 有道笔记根目录
-        ydnote_dir = config_dict['ydnote_dir']
-        # 本地目录
-        local_dir = os.path.join(config_dict['local_dir'],ydnote_dir)
-        local_dir, error_msg = self._check_local_dir(local_dir = local_dir)
-        if error_msg:
-            return '', error_msg
-        self.root_local_dir = local_dir
         self.youdaonote_api = YoudaoNoteApi()
         error_msg = self.youdaonote_api.login_by_cookies()
         if error_msg:
             return '', error_msg
-        self.smms_secret_token = config_dict['smms_secret_token']
-        self.is_relative_path = config_dict['is_relative_path']
-        
-        return self._get_ydnote_dir_id(ydnote_dir=ydnote_dir)
+        return self._get_ydnote_dir_id()
 
-    def pull_dir_by_id_recursively(self, dir_id, local_dir):
+    def pull_dir_by_id_recursively(self, dir_id, local_dir: str, dir_depth: int=0):
         """
         根据目录 ID 循环遍历下载目录下所有文件
         :param dir_id:
         :param local_dir: 本地目录
         :return: error_msg
         """
+        
         dir_info = self.youdaonote_api.get_dir_info_by_id(dir_id)
         try:
             entries = dir_info['entries']
@@ -81,15 +85,27 @@ class YoudaoNotePull(object):
             id = file_entry['id']
             file_name = file_entry['name']
             file_name = self._optimize_file_name(file_name)
-            if file_entry['dir']:
+            
+            # 判断当前目录是否在要下载
+            if self.ydnote_dir_list:
+                if len(self.ydnote_dir_list) > dir_depth:
+                    if file_entry['dir']:
+                        if self.ydnote_dir_list[dir_depth] != file_name:
+                            continue
+                    else:
+                        continue
+            
+            if file_entry['dir']:                
+                next_dir_depth = dir_depth + 1
                 sub_dir = os.path.join(local_dir, file_name).replace('\\', '/')
                 # 判断本地文件夹是否存在
                 if not os.path.exists(sub_dir):
                     os.mkdir(sub_dir)
-                self.pull_dir_by_id_recursively(id, sub_dir)
+                self.pull_dir_by_id_recursively(id, sub_dir,next_dir_depth)
             else:
                 modify_time = file_entry['modifyTimeForSort']
                 create_time = file_entry['createTimeForSort']
+                # print(f'正在下载文件：{local_dir}/{file_name}')
                 self._add_or_update_file(id, file_name, local_dir, modify_time, create_time)
 
     def _check_local_dir(self, local_dir, test_default_dir=None) -> Tuple[str, str]:
@@ -113,7 +129,7 @@ class YoudaoNotePull(object):
         local_dir = local_dir.replace('\\', '/')
         return local_dir, ''
 
-    def _get_ydnote_dir_id(self, ydnote_dir) -> Tuple[str, str]:
+    def _get_ydnote_dir_id(self, ydnote_dir: str=None) -> Tuple[str, str]:
         """
         获取指定有道云笔记指定目录 ID
         :param ydnote_dir: 指定有道云笔记指定目录
@@ -319,7 +335,7 @@ if __name__ == '__main__':
             logging.info(error_msg)
             sys.exit(1)
         logging.info('正在 pull，请稍后 ...')
-        youdaonote_pull.pull_dir_by_id_recursively(ydnote_dir_id, youdaonote_pull.root_local_dir)
+        youdaonote_pull.pull_dir_by_id_recursively(ydnote_dir_id, youdaonote_pull.local_root_dir)
     except requests.exceptions.ProxyError as proxyErr:
         logging.info(
             '请检查网络代理设置；也有可能是调用有道云笔记接口次数达到限制，请等待一段时间后重新运行脚本，若一直失败，可删除「cookies.json」后重试')
