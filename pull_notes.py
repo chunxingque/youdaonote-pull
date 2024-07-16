@@ -15,16 +15,19 @@ from typing import Tuple
 import requests
 from win32_setctime import setctime
 
-import logging_conf
-from convert import YoudaoNoteConvert
-from public import FileActionEnum
-from public import covert_config
-from pull_images import PullImages
-from youDaoNoteApi import YoudaoNoteApi
+import core.logging_conf as logging_conf
+from core.convert import YoudaoNoteConvert
+from core.public import covert_config
+from core.pull_images import PullImages
+from core.youDaoNoteApi import YoudaoNoteApi
 
 MARKDOWN_SUFFIX = '.md'
 NOTE_SUFFIX = '.note'
 
+class FileActionEnum(Enum):
+    CONTINUE = "跳过"
+    ADD = "新增"
+    UPDATE = "更新"
 
 class YoudaoNotePull(object):
     """

@@ -1,13 +1,7 @@
 from typing import Tuple
 import json
-from enum import Enum
 
 CONFIG_PATH = 'config.json'
-
-class FileActionEnum(Enum):
-    CONTINUE = "跳过"
-    ADD = "新增"
-    UPDATE = "更新"
 
 
 def covert_config(config_path: str=None) -> Tuple[dict, str]:

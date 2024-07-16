@@ -583,5 +583,5 @@ class YoudaoNoteConvert(object):
 
 
 if __name__ == '__main__':
-    path = "./test/test.json"
+    path = "../test/test.json"
     YoudaoNoteConvert.covert_json_to_markdown(path,False)

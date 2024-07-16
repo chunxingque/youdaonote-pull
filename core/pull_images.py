@@ -1,14 +1,18 @@
 import glob
 import os
 import re
+import sys
 from typing import Tuple
+import logging
+
+import requests
 from urllib import parse
 from urllib.parse import urlparse
 
-import requests
-import logging
-from public import covert_config
-from youDaoNoteApi import YoudaoNoteApi
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(BASE_DIR)
+from core.public import covert_config
+from core.youDaoNoteApi import YoudaoNoteApi
 
 REGEX_IMAGE_URL = re.compile(r'!\[.*?\]\((.*?note\.youdao\.com.*?)\)')
 REGEX_ATTACH = re.compile(r'\[(.*?)\]\(((http|https)://note\.youdao\.com.*?)\)')

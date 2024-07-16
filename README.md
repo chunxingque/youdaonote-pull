@@ -21,7 +21,7 @@
 
 ## 使用步骤
 
-### 一、导出前的准备工作
+### 导出前的准备工作
 
 #### 1、安装  [Git](https://git-scm.com/downloads)、clone 项目
 
@@ -132,7 +132,6 @@ app-venv/bin/pip install -r requirements.txt
 }
 ```
 
-
 **Cookie获取js脚本**
 
 用上面的方式寻找Cookie让人眼瞎
@@ -216,7 +215,7 @@ console.warn(JSON.stringify(formattedCookies, null, 2))
 }
 ```
 
-### 二、运行导出脚本
+### 运行导出脚本
 
 ```shell
 python3 pull_notes.py  # macOS/Linux
@@ -228,7 +227,7 @@ app-venv/bin/python pull_notes.py # 虚拟环境
 
 建议笔记名称不要使用特殊符号，例如：#、/、:、空格、英文括号等，可以使用_和-符号替代，不然容易报错
 
-### 三、多次导出
+### 多次导出
 
 多次导出时，同样使用以下命令：
 
