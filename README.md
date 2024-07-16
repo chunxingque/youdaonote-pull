@@ -253,7 +253,7 @@ python  pull_notes.py   # Windows
 格式转换测试
 
 ```
-python3 convert.py
+python3 core/convert.py
 ```
 
 json数据格式说明

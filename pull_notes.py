@@ -15,7 +15,7 @@ from typing import Tuple
 import requests
 from win32_setctime import setctime
 
-import core.logging_conf as logging_conf
+from core import logging_conf
 from core.convert import YoudaoNoteConvert
 from core.public import covert_config
 from core.pull_images import PullImages
