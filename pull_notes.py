@@ -50,7 +50,10 @@ class YoudaoNotePull(object):
             return '', error_msg
         # 有道笔记目录
         self.ydnote_dir: str = config_dict['ydnote_dir']
-        self.ydnote_dir_list = self.ydnote_dir.split('/')
+        if self.ydnote_dir:
+            self.ydnote_dir_list = self.ydnote_dir.split('/')
+        else:
+            self.ydnote_dir_list = []
         self.smms_secret_token = config_dict['smms_secret_token']
         self.is_relative_path = config_dict['is_relative_path']
         self.local_root_dir = config_dict['local_dir']
