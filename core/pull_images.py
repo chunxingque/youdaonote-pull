@@ -16,8 +16,6 @@ from core.youDaoNoteApi import YoudaoNoteApi
 
 REGEX_IMAGE_URL = re.compile(r'!\[.*?\]\((.*?note\.youdao\.com.*?)\)')
 REGEX_ATTACH = re.compile(r'\[(.*?)\]\(((http|https)://note\.youdao\.com.*?)\)')
-MARKDOWN_SUFFIX = '.md'
-NOTE_SUFFIX = '.note'
 # 有道云笔记的图片地址
 # IMAGES = 'images'
 IMAGES = 'attachments'
@@ -107,7 +105,7 @@ class PullImages():
             image_path = self._download_image_url(file_path, image_url, index)
             return image_path or image_url
 
-    def _download_image_url(self, file_path, url, index) -> str:
+    def _download_image_url(self, file_path: str, url: str, index) -> str:
         """
         下载文件到本地，返回本地路径
         :param file_path:
@@ -116,6 +114,8 @@ class PullImages():
         :return:  path
         """
         try:
+            # 去掉url可能带的其他字符
+            url = url.split()[0]
             response = self.youdaonote_api.http_get(url)
         except requests.exceptions.ProxyError as err:
             error_msg = '网络错误，「{}」下载失败。错误提示：{}'.format(url, format(err))
@@ -186,8 +186,7 @@ class PullImages():
         content_type = response.headers.get('Content-Type')
         file_type = '附件'
         if response.status_code != 200 or not content_type:
-            error_msg = '下载「{}」失败！{}可能已失效，可浏览器登录有道云笔记后，查看{}是否能正常加载'.format(url, file_type,
-                                                                                                         file_type)
+            error_msg = '下载「{}」失败！{}可能已失效，可浏览器登录有道云笔记后，查看{}是否能正常加载'.format(url, file_type,file_type)
             logging.info(error_msg)
             return ''
 

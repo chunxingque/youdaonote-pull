@@ -5,7 +5,6 @@ import xml.etree.ElementTree as ET
 from typing import Tuple
 
 MARKDOWN_SUFFIX = '.md'
-NOTE_SUFFIX = '.note'
 
 
 class XmlElementConvert(object):
@@ -503,13 +502,13 @@ class YoudaoNoteConvert(object):
         # 如果文件为空，结束
         if os.path.getsize(file_path) == 0:
             os.rename(file_path, new_file_path)
-            return False
+            return None
 
         new_content = YoudaoNoteConvert.covert_xml_to_markdown_content(file_path)
         with open(new_file_path, 'wb') as f:
             f.write(new_content.encode('utf-8'))
         # 删除旧文件
-        if os.path.exists(file_path):
+        if os.path.exists(file_path) and file_path != new_file_path:
             os.remove(file_path)
         return new_file_path
 
@@ -565,7 +564,7 @@ class YoudaoNoteConvert(object):
             f.write(new_content.encode('utf-8'))
         # 删除旧文件
         if is_delete:
-            if os.path.exists(file_path):
+            if os.path.exists(file_path) and file_path != new_file_path:
                 os.remove(file_path)
         return new_file_path
 

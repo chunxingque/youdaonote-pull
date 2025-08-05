@@ -17,17 +17,23 @@ from win32_setctime import setctime
 
 from core import logging_conf
 from core.convert import YoudaoNoteConvert
-from core.public import covert_config
+from core.public import covert_config,delete_folder
 from core.pull_images import PullImages
 from core.youDaoNoteApi import YoudaoNoteApi
 
-MARKDOWN_SUFFIX = '.md'
-NOTE_SUFFIX = '.note'
 
 class FileActionEnum(Enum):
     CONTINUE = "跳过"
     ADD = "新增"
     UPDATE = "更新"
+    
+class NoteTypeEnum(Enum):
+    MD = 1
+    JSON = 2
+    XML = 3
+    CLIP = 4
+    OTHER = 5
+    MINDMAP = 6
 
 class YoudaoNotePull(object):
     """
@@ -47,7 +53,8 @@ class YoudaoNotePull(object):
     def load_config(self):
         config_dict, error_msg = covert_config()
         if error_msg:
-            return '', error_msg
+            logging.error(error_msg)
+            sys.exit(1)
         # 有道笔记目录
         self.ydnote_dir: str = config_dict['ydnote_dir']
         if self.ydnote_dir:
@@ -57,6 +64,8 @@ class YoudaoNotePull(object):
         self.smms_secret_token = config_dict['smms_secret_token']
         self.is_relative_path = config_dict['is_relative_path']
         self.local_root_dir = config_dict['local_dir']
+        self.del_spare_file = config_dict['del_spare_file']
+        self.del_spare_dir = config_dict['del_spare_dir']
 
     def get_ydnote_dir_id(self):
         """
@@ -72,6 +81,48 @@ class YoudaoNotePull(object):
         if error_msg:
             return '', error_msg
         return self._get_ydnote_dir_id()
+    
+    
+    def del_spare_local_file(self, local_dir: str,yd_dir_list: list):
+        """
+        删除该目录下的本地多余的文件，这些可能是重命名的笔记，被删除的笔记，或者外加的笔记
+        :param local_dir: 本地目录
+        """
+             
+        local_files = os.listdir(local_dir)
+        
+        for file in local_files:
+            # 排除不需要的文件
+            if file.startswith('.'):
+                continue
+            
+            file_path = os.path.join(local_dir, file).replace('\\', '/')
+            if os.path.isfile(file_path) and file not in yd_dir_list:
+                os.remove(file_path)
+                logging.info(f"删除多余文件：{file_path}")
+                
+    def del_spare_local_dir(self, local_dir: str,yd_dir_list: list):
+        """
+        删除该目录下本地多余的目录，这些可能是重命名的目录，被删除的目录，或者外加的目录
+        :param local_dir: 本地目录
+        """
+        exclude_file = ["attachments"]
+                
+        local_files = os.listdir(local_dir)
+        
+        for file in local_files:
+            # 排除不需要的文件
+            if file.startswith('.'):
+                continue
+            
+            if file in exclude_file:
+                continue
+            
+            file_path = os.path.join(local_dir, file).replace('\\', '/')
+            if os.path.isdir(file_path) and file not in yd_dir_list:
+                delete_folder(file_path)
+                logging.info(f"删除多余目录：{file_path}")
+                
 
     def pull_dir_by_id_recursively(self, dir_id, local_dir: str, dir_depth: int=0):
         """
@@ -80,6 +131,9 @@ class YoudaoNotePull(object):
         :param local_dir: 本地目录
         :return: error_msg
         """
+        # 目录下所有文件或目录
+        yb_dir_file_list = []
+        yb_dir_dir_list = []
         
         dir_info = self.youdaonote_api.get_dir_info_by_id(dir_id)
         try:
@@ -90,18 +144,26 @@ class YoudaoNotePull(object):
             file_entry = entry['fileEntry']
             id = file_entry['id']
             file_name = file_entry['name']
+            # 优化文件名
             file_name = self._optimize_file_name(file_name)
             
             # 判断当前目录是否在要下载
-            if self.ydnote_dir_list:
+            if self.ydnote_dir_list and file_entry['dir']:
                 if len(self.ydnote_dir_list) > dir_depth:
-                    if file_entry['dir']:
-                        if self.ydnote_dir_list[dir_depth] != file_name:
-                            continue
-                    else:
+                    if self.ydnote_dir_list[dir_depth] != file_name:
                         continue
+                    else:
+                        next_dir_depth = dir_depth + 1
+                        sub_dir = os.path.join(local_dir, file_name).replace('\\', '/')
+                        # 判断本地文件夹是否存在
+                        if not os.path.exists(sub_dir):
+                            os.mkdir(sub_dir)
+                        self.pull_dir_by_id_recursively(id, sub_dir,next_dir_depth)
+                        # 其他目录不做处理
+                        return None
             
-            if file_entry['dir']:                
+            if file_entry['dir']:
+                yb_dir_dir_list.append(file_name)
                 next_dir_depth = dir_depth + 1
                 sub_dir = os.path.join(local_dir, file_name).replace('\\', '/')
                 # 判断本地文件夹是否存在
@@ -111,8 +173,20 @@ class YoudaoNotePull(object):
             else:
                 modify_time = file_entry['modifyTimeForSort']
                 create_time = file_entry['createTimeForSort']
-                # print(f'正在下载文件：{local_dir}/{file_name}')
-                self._add_or_update_file(id, file_name, local_dir, modify_time, create_time)
+                # 判断笔记类型
+                note_type = self.judge_type(id,file_name) 
+                # 转化为下载文件名
+                download_filename,local_filename = self.get_filename(file_name,note_type)
+                self._add_or_update_file(id, local_dir,download_filename,local_filename, note_type,modify_time, create_time)
+                yb_dir_file_list.append(local_filename)
+        
+        # 删除本地多余的文件
+        if self.del_spare_file:
+            self.del_spare_local_file(local_dir, yb_dir_file_list)
+        # 删除本地多余的目录
+        if self.del_spare_dir:
+            self.del_spare_local_dir(local_dir, yb_dir_dir_list)
+        
 
     def _check_local_dir(self, local_dir, test_default_dir=None) -> Tuple[str, str]:
         """
@@ -154,8 +228,36 @@ class YoudaoNotePull(object):
                 return file_entry['id'], ''
 
         return '', '有道云笔记指定顶层目录不存在'
+        
+    
+    def get_filename(self, yb_file_name: str, note_type: str):
+        """有道云笔记文件名转换为下载的文件名和最后的本地文件名
 
-    def _add_or_update_file(self, file_id, file_name, local_dir, modify_time, create_time):
+        Args:
+            yb_file_name (str): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        
+        # logging.info(f"{file_name}:{note_type}")
+        if yb_file_name.__contains__('\r') or yb_file_name.__contains__('\n'):
+            logging.warning(f"注意这个文件名 {yb_file_name}")
+            yb_file_name = yb_file_name.replace('\t', '').replace('\n', '')  # 原后缀路径
+
+        if note_type == NoteTypeEnum.JSON:
+            download_file_name = f'{os.path.splitext(yb_file_name)[0]}.json'
+            local_file_name = f'{os.path.splitext(yb_file_name)[0]}.md'
+        elif note_type == NoteTypeEnum.XML:
+            download_file_name = f'{os.path.splitext(yb_file_name)[0]}.xml'
+            local_file_name = f'{os.path.splitext(yb_file_name)[0]}.md'
+        else:
+            download_file_name = yb_file_name
+            local_file_name = yb_file_name
+        
+        return download_file_name,local_file_name
+
+    def _add_or_update_file(self, file_id, local_dir,download_filename,local_filename, note_type, modify_time, create_time):
         """
         新增或更新文件
         :param file_id:
@@ -164,36 +266,19 @@ class YoudaoNotePull(object):
         :param modify_time:
         :return:
         """
-
-        youdao_file_suffix = os.path.splitext(file_name)[1]  # 笔记后缀
-        note_type = self.judge_type(file_id, youdao_file_suffix, local_dir, file_name)
-        # logging.info(f"{file_name}:{note_type}")
-        is_note = True if note_type == 1 or note_type == 2 else False
-        tmp_path = os.path.join(local_dir, file_name).replace('\\', '/')
-        if tmp_path.__contains__('\r') or tmp_path.__contains__('\n'):
-            logging.warning(f"注意这个文件名 {tmp_path}")
-        original_file_path = (tmp_path.replace('\t', '').replace('\n', ''))  # 原后缀路径
-        # 生成.md后缀的文件的绝对路径
-        tmp_path2 = os.path.join(local_dir, ''.join([os.path.splitext(file_name)[0], MARKDOWN_SUFFIX])).replace(
-            '\\', '/')
-        if tmp_path2.__contains__('\r') or tmp_path2.__contains__('\n'):
-            logging.warning(f"注意这个文件名 {tmp_path2}")
-
-        local_file_path = (tmp_path2.replace('\t', '').replace('\n', '')) if is_note else original_file_path
-        # 如果有有道云笔记是「note」类型，则提示类型
-        tip = f'| 原文件: {file_name} | 类型：{note_type}'
+        local_file_path = os.path.join(local_dir, local_filename).replace('\\', '/')
+        download_file_path = os.path.join(local_dir, download_filename).replace('\\', '/')
+        
         file_action = self._get_file_action(local_file_path, modify_time)
         if file_action == FileActionEnum.CONTINUE:
             return
-        if file_action == FileActionEnum.UPDATE:
-            # 考虑到使用 f.write() 直接覆盖原文件，在 Windows 下报错（WinError 183），先将其删除
-            os.remove(local_file_path)
+        # if file_action == FileActionEnum.UPDATE:
+        #     # 考虑到使用 f.write() 直接覆盖原文件，在 Windows 下报错（WinError 183），先将其删除
+        #     os.remove(local_file_path)
         try:
-            self._pull_file(file_id, original_file_path, note_type)
-            if file_action == FileActionEnum.CONTINUE:
-                logging.debug('{}「{}」{}'.format(file_action.value, local_file_path, tip))
-            else:
-                logging.info('{}「{}」{}'.format(file_action.value, local_file_path, tip))
+            self._pull_file(file_id, download_file_path, note_type)
+            tip = f"类型：{note_type}"
+            logging.info('{}「{}」{}'.format(file_action.value, local_file_path, tip))
 
             if platform.system() == "Windows":
                 setctime(local_file_path, create_time)
@@ -202,54 +287,33 @@ class YoudaoNotePull(object):
 
         except Exception as error:
             logging.error(
-                '{}「{}」失败！请检查文件！错误提示：{}'.format(file_action.value, original_file_path, format(error)), error)
+                '{}「{}」失败！请检查文件！错误提示：{}'.format(file_action.value, local_file_path, format(error)), error)
 
-    def _judge_is_note(self, file_id, youdao_file_suffix):
+    def judge_type(self, file_id: str, file_name: str) -> NoteTypeEnum:
         """
-        判断是否是 note 类型
-        :param file_id:
-        :param youdao_file_suffix:
-        :return:
+        判断返回内容类型
         """
-        is_note = False
-        # 1、如果文件是 .note 类型
-        if youdao_file_suffix == NOTE_SUFFIX:
-            is_note = True
-        # 2、如果文件没有类型后缀，但以 `<?xml` 开头
-        if not youdao_file_suffix:
+        youdao_file_suffix = os.path.splitext(file_name)[1]  # 笔记后缀
+        note_type = NoteTypeEnum.OTHER
+        if youdao_file_suffix == ".note":
             response = self.youdaonote_api.get_file_by_id(file_id)
             content = response.content[:5]
-            is_note = True if content == b"<?xml" else False
-        return is_note
-
-    def judge_type(self, file_id: str, youdao_file_suffix: str, local_dir: str, file_name: str) -> int:
-        """
-        判断返回内容
-        :param entryType: int
-        :param orgEditorType: int
-        :return: note_type: int
-        """
-        note_type = 0
-        if youdao_file_suffix == ".note" or youdao_file_suffix == ".clip" or youdao_file_suffix == '':
-            if youdao_file_suffix == '':
-                logging.warning(
-                    f"文件后缀「{youdao_file_suffix}」 {local_dir}/{file_name} 不识别，请检查！未获取到后缀")
-
-            response = self.youdaonote_api.get_file_by_id(file_id)
-            content = response.content[:5]
-            is_xml = True if (content == b"<?xml" or response.content[:1] == b"<") else False
-            if is_xml:  # xml类型
-                note_type = 1
-            else:  # json类型
-                if content.startswith(b'{"'):
-                    note_type = 2
+            if content.startswith(b'{"'):
+                note_type = NoteTypeEnum.JSON
+            else:            
+                is_xml = True if (content == b"<?xml" or response.content[:1] == b"<") else False
+                if is_xml:  # xml类型
+                    note_type = NoteTypeEnum.XML
                 else:
-                    # logging.warning(f"奇怪 {content}")
-                    note_type = 1
+                    logging.warning(f"文件后缀「{youdao_file_suffix}」 {file_name} 不识别，请检查！")
         elif youdao_file_suffix == ".md":
-            note_type = 3
+            note_type = NoteTypeEnum.MD
+        elif youdao_file_suffix == ".clip":
+            note_type = NoteTypeEnum.CLIP
+        elif youdao_file_suffix == ".mindmap":
+            note_type = NoteTypeEnum.MINDMAP
         else:
-            logging.warning(f"文件后缀「{youdao_file_suffix}」 {local_dir}/{file_name} 不识别，请检查！")
+            logging.warning(f"文件后缀「{youdao_file_suffix}」 {file_name} 不识别，请检查！")
 
         return note_type
 
@@ -266,8 +330,13 @@ class YoudaoNotePull(object):
         with open(file_path, 'wb') as f:
             f.write(response.content)  # response.content 本身就是字节类型
         new_file_path = ""
-        # 2、如果文件是 note 类型，将其转换为 MarkDown 类型
-        if note_type == 1:
+        
+        if note_type == NoteTypeEnum.JSON:
+            new_file_path = YoudaoNoteConvert.covert_json_to_markdown(file_path,is_delete=True)
+        elif note_type == NoteTypeEnum.MD:
+            YoudaoNoteConvert.markdown_filter(file_path)
+            new_file_path = file_path
+        elif note_type == NoteTypeEnum.XML:
             try:
                 new_file_path = YoudaoNoteConvert.covert_xml_to_markdown(file_path)
             except (ET.ParseError, IndexError):
@@ -275,14 +344,10 @@ class YoudaoNotePull(object):
                 new_file_path = YoudaoNoteConvert.covert_html_to_markdown(file_path)
             except Exception as e2:
                 logging.error(f'{file_path} 笔记转换 MarkDown 失败，将跳过', e2)
-        elif note_type == 2:
-            new_file_path = YoudaoNoteConvert.covert_json_to_markdown(file_path,is_delete=True)
-        elif note_type == 3:
-            YoudaoNoteConvert.markdown_filter(file_path)
-            new_file_path = file_path
-            
+    
         # 迁移附件和图片
-        if os.path.exists(new_file_path):
+        file_suffix = os.path.splitext(new_file_path)[1]
+        if os.path.exists(new_file_path) and file_suffix == ".md":
             pull_image = PullImages(self.youdaonote_api, self.smms_secret_token, self.is_relative_path)
             pull_image.migration_ydnote_url(new_file_path)
 
@@ -333,9 +398,7 @@ if __name__ == '__main__':
 
     start_time = int(time.time())
     try:
-        youdaonote_pull = YoudaoNotePull()
-        # data = youdaonote_pull._optimize_file_name(' \/":|*?#())<> []  你(好) (he#l**o|)s')
-        # logging.info(data)        
+        youdaonote_pull = YoudaoNotePull()    
         ydnote_dir_id, error_msg = youdaonote_pull.get_ydnote_dir_id()
         if error_msg:
             logging.info(error_msg)

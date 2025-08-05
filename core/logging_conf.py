@@ -13,7 +13,7 @@ now_time = strftime("%Y%m%d", localtime())
 
 log_dir = os.path.join(BASE_DIR,'logs')
 log_path = os.path.join(log_dir,f'pull_{now_time}.log')
-print(log_dir)
+
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 

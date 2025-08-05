@@ -182,7 +182,9 @@ console.warn(JSON.stringify(formattedCookies, null, 2))
     "local_dir": "",
     "ydnote_dir": "",
     "smms_secret_token": "",
-    "is_relative_path": true
+    "is_relative_path": true,
+    "del_spare_file": false,
+    "del_spare_dir": false
 }
 ```
 
@@ -190,30 +192,11 @@ console.warn(JSON.stringify(formattedCookies, null, 2))
 * `ydnote_dir`：选填，有道云笔记目录，默认会下载该所有的笔记，支持多层目录，例如：根目录/子目录/子子目录
 * `smms_secret_token`：选填， [SM.MS](https://sm.ms) 的 `Secret Token`（注册后 -> Dashboard -> API Token），用于上传笔记中有道云图床图片到 SM.MS 图床，不填则只下载到本地（`youdaonote-images` 文件夹），`Markdown` 中使用本地链接
 * `is_relative_path`：在 MD 文件中图片 / 附件是否采用相对路径展示，默认true
+* del_spare_file: 删除本地多余的文件，如果有道笔记上没有的文件，将会被删除
+* del_spare_dir：删除本地多余的目录，如果有道笔记上没有的目录，将会被删除
 
-示例：
+注意：del_spare_file和del_spare_dir这两个参数是为了方便清理本地多余的文件或目录，这些文件或者目录是在有道云上被删除或者重命名的，如果手动清理比较麻烦。建议自动清理多余的文件，然后手动清理多余的目录。
 
-- macOS
-
-```json
-{
-    "local_dir": "/Users/deppwang/Documents/youdaonote-pull/test",
-    "ydnote_dir": "",
-    "smms_secret_token": "SGSLk9yWdTe4RenXYqEPWkqVrx0Yexample",
-    "is_relative_path": true
-}
-```
-
-- Windows
-
-```json
-{
-    "local_dir": "D:/Documents/youdaonote-pull/test",
-    "ydnote_dir": "",
-    "smms_secret_token": "SGSLk9yWdTe4RenXYqEPWkqVrx0Yexample",
-    "is_relative_path": true
-}
-```
 
 ### 运行导出脚本
 
