@@ -422,6 +422,20 @@ class jsonConvert(object):
             text += f"<mark>{q_text}</mark>"
         return text
 
+    def convert_drawio_ynote_func(self, content: dict) -> str:
+        return self.convert_im_func(content=content)
+
+    def convert_excalidraw_func(self, content: dict) -> str:
+        return self.convert_im_func(content=content)
+
+    def convert_mindmap_func(self, content: dict) -> str:
+        return self.convert_im_func(content=content)
+
+    def convert_media_func(self, content: dict) -> str:
+        sr = content.get("4", {}).get("sr", "outside link:")
+        hf = content.get("4", {}).get("hf", "")
+        return f'[{sr}]({hf})'
+
     def _encode_string_to_md(self, original_text):
         """ 将字符串转义 防止 markdown 识别错误 """
 
@@ -546,7 +560,8 @@ class YoudaoNoteConvert(object):
             type = content.get('6')
             # 根据类型处理，无类型的为普通文本
             if type:
-                convert_func = getattr(jsonConvert(), f'convert_{type}_func', None)
+                clean_type = type.replace('-', '_')
+                convert_func = getattr(jsonConvert(), f'convert_{clean_type}_func', None)
                 if not convert_func:
                     line_content = jsonConvert().convert_text_func(content)
                 else:
