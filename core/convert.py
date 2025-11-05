@@ -289,6 +289,9 @@ class jsonConvert(object):
                 elif attr['2'] == "u":
                     # 下划线
                     text = f"<u>{text}</u>"
+                elif attr['2'] == "d":
+                    # 删除线
+                    text = f"~~{text}~~"
                 elif attr['2'] == "c":
                     # 颜色
                     text = f'<font color= "{attr["0"]}">{text}</font>'
