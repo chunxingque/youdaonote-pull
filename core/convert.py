@@ -405,6 +405,23 @@ class jsonConvert(object):
             table_lines = table_lines + table_line + f'{nl}'
         return table_lines
 
+    def convert_hr_func(self, content: dict) -> str:
+        """分割线
+        """
+        return '---'
+
+    def convert_la_func(self, content: dict) -> str:
+        """
+        高亮文本, 按之前逻辑加<mark>标记
+        """
+        la_text_list = content['5']
+        text = ''
+        for q_text_dict in la_text_list:
+            q_text = self.convert_text_func(q_text_dict)
+            q_text = q_text.replace('\n', '')
+            text += f"<mark>{q_text}</mark>"
+        return text
+
     def _encode_string_to_md(self, original_text):
         """ 将字符串转义 防止 markdown 识别错误 """
 
