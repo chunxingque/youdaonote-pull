@@ -4,7 +4,7 @@ import os
 from time import strftime, localtime
 
 
-LOG_FORMAT = "%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(funcName)-10s : %(message)s"
+LOG_FORMAT = "%(asctime)s %(levelname)s %(filename)s:%(lineno)d : %(message)s"
 DATE_FORMAT = "%Y/%m/%d %H:%M:%S "
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

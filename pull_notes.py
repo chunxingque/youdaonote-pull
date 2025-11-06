@@ -216,7 +216,11 @@ class YoudaoNotePull(object):
         :return: dir_id, error_msg
         """
         root_dir_info = self.youdaonote_api.get_root_dir_info_id()
-        root_dir_id = root_dir_info['fileEntry']['id']
+        file_entry = root_dir_info.get('fileEntry')
+        if not file_entry:
+            return '', 'Cookies无效,请重新配置Cookies'
+        
+        root_dir_id = file_entry['id']
         # 如果不指定文件夹，取根目录 ID
         if not ydnote_dir:
             return root_dir_id, ''
@@ -394,7 +398,7 @@ if __name__ == '__main__':
 
     logging_conf.init_logging()
 
-    logging.info('\n\n\n')
+    logging.info('\n')
 
     start_time = int(time.time())
     try:

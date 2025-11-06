@@ -1,0 +1,12 @@
+[project]
+name = "youdaonote-pull"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "brotli==1.1.0",
+    "markdownify==0.11.6",
+    "requests==2.31.0",
+    "win32-setctime==1.1.0",
+]

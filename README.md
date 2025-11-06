@@ -21,7 +21,7 @@
 
 ## 使用步骤
 
-### 导出前的准备工作
+### 环境安装与配置
 
 #### 1、安装  [Git](https://git-scm.com/downloads)、clone 项目
 
@@ -38,76 +38,36 @@ git clone https://github.com/chunxingque/youdaonote-pull.git
 cd youdaonote-pull
 ```
 
-#### 2、安装 [Python3](https://www.python.org/downloads/)、安装依赖模块（包）
+#### 2、安装 [Python](https://www.python.org/downloads/)、安装依赖模块（包）
 
-- 可根据 [廖雪峰 Python 教程](https://www.liaoxuefeng.com/wiki/1016959663602400/1016959856222624) 安装 Python3，测试是否安装成功
+方法一：uv安装python与依赖
 
-```shell
-python3 --version  # macOS/Linux
-python --version   # Windows
+```
+uv sync
+# 或者
+uv venv --python 3.12
+uv pip install -r pyproject.toml
 ```
 
-- 安装依赖包
+方法二：使用pip安装依赖
 
 ```shell
-# macOS
-sudo easy_install pip3      # 安装 Python3 Package Installer
-sudo pip3 install -r requirements.txt
-
-# 虚拟环境
-python3 -m venv app-venv
-```
-
-```shell
-# Windows
 pip install -r requirements.txt
-
-# 有问题可参考 https://www.liaoxuefeng.com/wiki/1016959663602400/1017493741106496
-
-# 虚拟环境
-app-venv/bin/pip install -r requirements.txt
 ```
 
 #### 3、设置登录 `Cookies` 文件 `cookies.json`
-
-```json
-{
-    "cookies": [
-        [
-            "YNOTE_CSTK",
-            "**",
-            ".note.youdao.com",
-            "/"
-        ],
-        [
-            "YNOTE_LOGIN",
-            "**",
-            ".note.youdao.com",
-            "/"
-        ],
-        [
-            "YNOTE_SESS",
-            "**",
-            ".note.youdao.com",
-            "/"
-        ]
-    ]
-}
-```
 
 由于有道云笔记登录升级，**目前脚本不能使用账号密码登录，只能使用 `Cookies` 登录。**
 
 获取 `Cookies` 方式：
 
 1. 在浏览器如 Chrome 中使用账号密码或者其他方式登录有道云笔记
-2. 打开 DevTools (F12)，Network 下找「主」请求（一般是第一个），再找 `Cookie`
-3. 复制对应数据替换  `**`
-
-![image.png](https://s2.loli.net/2022/04/04/N47KPEaSGvCpsfX.png)
+2. 打开 DevTools (F12)，Network 下找 `https://note.youdao.com/check-alive`请求，再找 `Cookie`
+3. 复制对应数据替换
 
 示例：
 
-```json
+```
 {
     "cookies": [
         [
@@ -132,47 +92,6 @@ app-venv/bin/pip install -r requirements.txt
 }
 ```
 
-**Cookie获取js脚本**
-
-用上面的方式寻找Cookie让人眼瞎
-因此编写此脚本
-使用方式：
-浏览器F12打开开发者工具，找到控制台把脚本粘贴进去，替换tmp_cookie的值
-回车，即可得到一份身份认证Cookie配置文件
-（YNOTE_SESS属性有HttpOnly属性，不然这个脚本可以更简单）
-
-```javascript
-var tmp_cookie = '这里把上图Cookie属性的值丢进来'
-
-function getCookies() {
-    var cookies = tmp_cookie.split(';');
-    var result = [];
-    for (var i = 0; i < cookies.length; i++) {
-        var cookie = cookies[i].trim();
-        var parts = cookie.split('=');
-        var name = parts[0];
-        var value = parts[1];
-        if (name === 'YNOTE_CSTK' || name === 'YNOTE_LOGIN' || name === 'YNOTE_SESS') {
-            result.push([name, value, '.note.youdao.com', '/']);
-        }
-    }
-    return result;
-}
-
-function formatCookies(cookies) {
-    return {
-        cookies: cookies
-    };
-}
-
-var cookies = getCookies();
-var formattedCookies = formatCookies(cookies);
-// 网站屏蔽了日志或者设置了console的日志级别，因此这里使用warn级别，可以正常打印
-console.warn(JSON.stringify(formattedCookies, null, 2))
-```
-
-- 提示：脚本单纯本地运行，不用担心你的 `Cookies` 泄露
-
 #### 4、设置脚本参数配置文件 `config.json`
 
 建议使用 [Sublime](https://www.sublimetext.com/3) 等三方编辑器编辑 `config.json`，避免编码格式错误
@@ -195,33 +114,20 @@ console.warn(JSON.stringify(formattedCookies, null, 2))
 * del_spare_file: 删除本地多余的文件，如果有道笔记上没有的文件，将会被删除
 * del_spare_dir：删除本地多余的目录，如果有道笔记上没有的目录，将会被删除
 
-注意：del_spare_file和del_spare_dir这两个参数是为了方便清理本地多余的文件或目录，这些文件或者目录是在有道云上被删除或者重命名的，如果手动清理比较麻烦。建议自动清理多余的文件，然后手动清理多余的目录。
-
+注意：del_spare_file和del_spare_dir这两个参数可以自动清理本地多余的文件或目录，这些文件或者目录是在有道云上被删除或者重命名的，如果手动清理还是比较麻烦的。如果仅仅是备份有道云的笔记，不会在本地添加额外的笔记，建议启用这两个参数。
 
 ### 运行导出脚本
 
 ```shell
-python3 pull_notes.py  # macOS/Linux
 python  pull_notes.py  # Windows
-app-venv/bin/python pull_notes.py # 虚拟环境
 ```
 
 如果某个笔记拉取失败，可能是笔记格式比较旧，可以新建一个新笔记，把旧笔记内容复制到新笔记，重新拉取，基本都可以解决。
 
 建议笔记名称不要使用特殊符号，例如：#、/、:、空格、英文括号等，可以使用_和-符号替代，不然容易报错
 
-### 多次导出
+当进行多次导出时，根据有道云笔记文件最后修改时间是否大于本地文件最后修改时间来判断是否需要更新。再次导出时，只会导出有道云笔记上次导出后新增、修改或未导出的笔记，不会覆盖本地已经修改的文件。**但有道云笔记和本地不要同时修改同一个文件，这样可能会导致本地修改丢失**！更新时，会重新下载文件并覆盖原文件，图片也会重新下载。
 
-多次导出时，同样使用以下命令：
-
-```shell
-python3 pull_notes.py  # macOS/Linux
-python  pull_notes.py   # Windows
-```
-
-根据有道云笔记文件最后修改时间是否大于本地文件最后修改时间来判断是否需要更新。再次导出时，只会导出有道云笔记上次导出后新增、修改或未导出的笔记，不会覆盖本地已经修改的文件。**但有道云笔记和本地不要同时修改同一个文件，这样可能会导致本地修改丢失**！
-
-更新时，会重新下载文件并覆盖原文件，图片也会重新下载。
 
 ## 代码调试
 
