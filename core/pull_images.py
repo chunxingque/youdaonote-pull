@@ -1,13 +1,17 @@
+import base64
 import glob
+import json
+import logging
 import os
+import pathlib
 import re
 import sys
+import urllib
 from typing import Tuple
-import logging
-
-import requests
 from urllib import parse
 from urllib.parse import urlparse
+
+import requests
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(BASE_DIR)
@@ -156,15 +160,24 @@ class PullImages():
         local_file_path = os.path.join(local_file_dir, file_name)
         # 使md附件或者图片的路径分隔符为"/"
         local_file_path = local_file_path.replace('\\', '/')
-
-        try:
-            with open(local_file_path, 'wb') as f:
-                f.write(response.content)  # response.content 本身就为字节类型
-            logging.debug('已将{}「{}」转换为「{}」'.format(file_type, url, local_file_path))
-        except:
-            error_msg = '{} {}有误！'.format(url, file_type)
-            logging.error(error_msg)
-            return ''
+        if file_name.endswith(".json"):
+            try:
+                data = json.loads(response.content)
+                local_file_path = self.save_from_svg(data.get('svg'), local_file_dir, stem=os.path.basename(
+                    os.path.splitext(file_path)[0]) + '_image_' + str(index))
+            except:
+                error_msg = '{} {}有误！'.format(url, file_type)
+                logging.error(error_msg)
+                return ''
+        else:
+            try:
+                with open(local_file_path, 'wb') as f:
+                    f.write(response.content)  # response.content 本身就为字节类型
+                logging.debug('已将{}「{}」转换为「{}」'.format(file_type, url, local_file_path))
+            except:
+                error_msg = '{} {}有误！'.format(url, file_type)
+                logging.error(error_msg)
+                return ''
 
         return local_file_path
 
@@ -212,6 +225,63 @@ class PullImages():
             return ''
 
         return local_file_path
+
+    def save_from_svg(self, svg: str, out_dir: str = ".", stem: str = "image") -> str:
+        """
+        save by MIME info：
+          - image/svg+xml -> .svg（UTF-8 ）
+          - image/png     -> .png（byte）
+          - other   -> byte。
+        """
+        mime, raw = self.parse_data_url(svg)
+
+        # mime mapping
+        ext_map = {
+            "image/svg+xml": "svg",
+            "image/png": "png",
+            "image/jpeg": "jpg",
+            "image/jpg": "jpg",
+            "image/webp": "webp",
+            "image/gif": "gif",
+        }
+        ext = ext_map.get(mime, "bin")
+
+        out_dir = pathlib.Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / f"{stem}.{ext}"
+
+        if mime == "image/svg+xml":
+            # SVG
+            svg_text = raw.decode("utf-8", errors="replace")
+            out_path.write_text(svg_text, encoding="utf-8")
+        else:
+            out_path.write_bytes(raw)
+
+        return str(out_path)
+
+    def parse_data_url(self, data_url: str) -> Tuple[str, bytes]:
+        """
+        parse data URL，return (mime, raw_bytes)
+        """
+        DATA_URL_RE = re.compile(
+            r'^data:(?P<mime>[^;,]+)(?P<params>(?:;[^,]*)*?),(?P<payload>.*)$',
+            re.IGNORECASE | re.DOTALL
+        )
+        m = DATA_URL_RE.match(data_url)
+        if not m:
+            raise ValueError(data_url)
+
+        mime = m.group("mime").lower()
+        params = (m.group("params") or "").lower()
+        payload = m.group("payload")
+
+        if ";base64" in params:
+            payload = payload.replace(" ", "+")
+            raw = base64.b64decode(payload, validate=False)
+        else:
+            raw = urllib.parse.unquote_to_bytes(payload)
+
+        return mime, raw
 
     def _optimize_file_name(self, name) -> str:
         """
