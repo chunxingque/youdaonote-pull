@@ -176,7 +176,7 @@ class jsonConvert(object):
             split_text_attrs = seven_content.get('9')
             if split_text and split_text_attrs and is_add_attr:
                 split_text = self.convert_text_attribute(split_text, split_text_attrs)
-            text += split_text
+            text += (split_text or '')  # fix: split_text 可能为 None
         return text
     
     def get_five_text(self, five_contents: list,is_add_attr: bool=True) -> str:
@@ -199,19 +199,14 @@ class jsonConvert(object):
                 if seven_contents:
                     split_text = self.get_seven_text(seven_contents=seven_contents, is_add_attr=is_add_attr)
                     text_list.append(split_text)
-                    if index == len(five_contents) - 1:
-                        return ''.join(text_list)
                 # 键5类型
                 elif next_five_contents:
                     one_line_text = self.get_five_text(next_five_contents, is_add_attr)
                     text_list.append(one_line_text)
-                    if index == len(five_contents) - 1:
-                        return ''.join(text_list)
-                # 其他类型返回空
+                # 其他类型（标记节点等）跳过，继续处理下一个
                 else:
-                    return ''
-        else:
-            return ''
+                    continue
+        return ''.join(text_list)
 
     
     def convert_text_func(self, content: dict, is_add_attr: bool=True) -> str:
@@ -235,26 +230,19 @@ class jsonConvert(object):
                         split_text = convert_func(five_content)
                     else:
                         split_text = self.convert_text_func(five_content)
-                        
-                    text_list.append(split_text)
-                    if index == len(five_contents) - 1:
-                       return self.optimize_text(''.join(text_list))
+                    text_list.append(split_text or '')
                 # 键7类型
                 elif seven_contents:
                     split_text = self.get_seven_text(seven_contents=seven_contents, is_add_attr=is_add_attr)
                     text_list.append(split_text)
-                    if index == len(five_contents) - 1:
-                        return self.optimize_text(''.join(text_list))
                 # 键5类型
                 elif next_five_contents:
                     one_line_text = self.get_five_text(next_five_contents, is_add_attr)
-                    text_list.append(one_line_text)
-                    if index == len(five_contents) - 1:
-                        return self.optimize_text(''.join(text_list))
+                    text_list.append(one_line_text or '')
+                # 其他类型（标记节点等）跳过，继续处理下一个
                 else:
-                    return ""
-        else:                      
-            return ""
+                    continue
+        return self.optimize_text(''.join(text_list))
     
     
     def convert_li_func(self,content: dict):
@@ -273,7 +261,9 @@ class jsonConvert(object):
         four_content: dict = content.get('4')
         if four_content:
             hf = four_content.get('hf')
-            text = f'[{source_text}]({hf})'
+            # source_text 为空时（链接无显示文字）用 URL 本身作为显示文字
+            display = source_text if source_text else hf
+            text = f'[{display}]({hf})'
         return text
 
     def convert_text_attribute(self, text: str, text_attrs: list):
@@ -310,8 +300,11 @@ class jsonConvert(object):
         text = self.convert_text_func(content=content)
         if text and type_name:
             level_str = type_name.replace('h', '')
-            level = int(level_str)
-            text = ' '.join(["#" * int(level), text])
+            try:
+                level = int(level_str)
+            except ValueError:
+                level = 1  # "title" 或其他非数字 level，默认 h1
+            text = ' '.join(["#" * level, text])
         return text
 
     def convert_im_func(self, content):
@@ -558,7 +551,9 @@ class YoudaoNoteConvert(object):
                 logging.error(e)
                 json_data = {}
 
-        json_contents = json_data['5']
+        json_contents = json_data.get('5', [])
+        if not json_contents:
+            return ''
         for content in json_contents:
             type = content.get('6')
             # 根据类型处理，无类型的为普通文本

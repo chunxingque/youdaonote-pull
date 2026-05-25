@@ -252,6 +252,11 @@ class YoudaoNotePull(object):
         elif note_type == NoteTypeEnum.XML:
             download_file_name = f'{os.path.splitext(yb_file_name)[0]}.xml'
             local_file_name = f'{os.path.splitext(yb_file_name)[0]}.md'
+        elif note_type == NoteTypeEnum.CLIP:
+            # 下载为 .clip，但本地追踪名用 .md（转换后的目标文件）
+            # 这样 del_spare_local_file 不会把转换后的 .md 当"多余文件"删掉
+            download_file_name = yb_file_name
+            local_file_name = f'{os.path.splitext(yb_file_name)[0]}.md'
         else:
             download_file_name = yb_file_name
             local_file_name = yb_file_name
@@ -313,6 +318,16 @@ class YoudaoNotePull(object):
             note_type = NoteTypeEnum.CLIP
         elif youdao_file_suffix == ".mindmap":
             note_type = NoteTypeEnum.MINDMAP
+        elif youdao_file_suffix == "":
+            # 老版本有道云书签/收藏，无后缀，读取内容头部判断实际格式
+            response = self.youdaonote_api.get_file_by_id(file_id)
+            content = response.content[:5]
+            if content.startswith(b'{"'):
+                note_type = NoteTypeEnum.JSON
+            elif content == b"<?xml" or response.content[:1] == b"<":
+                note_type = NoteTypeEnum.XML
+            else:
+                logging.warning(f"文件后缀「{youdao_file_suffix}」 {file_name} 不识别，请检查！")
         else:
             logging.warning(f"文件后缀「{youdao_file_suffix}」 {file_name} 不识别，请检查！")
 
@@ -333,6 +348,9 @@ class YoudaoNotePull(object):
         new_file_path = ""
         
         if note_type == NoteTypeEnum.JSON:
+            new_file_path = YoudaoNoteConvert.covert_json_to_markdown(file_path,is_delete=True)
+        elif note_type == NoteTypeEnum.CLIP:
+            # .clip 文件内容是 JSON 格式，复用同一套转换逻辑
             new_file_path = YoudaoNoteConvert.covert_json_to_markdown(file_path,is_delete=True)
         elif note_type == NoteTypeEnum.MD:
             YoudaoNoteConvert.markdown_filter(file_path)
