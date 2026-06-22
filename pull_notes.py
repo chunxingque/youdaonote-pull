@@ -34,6 +34,7 @@ class NoteTypeEnum(Enum):
     CLIP = 4
     OTHER = 5
     MINDMAP = 6
+    BINARY = 7
 
 class YoudaoNotePull(object):
     """
@@ -244,7 +245,7 @@ class YoudaoNotePull(object):
         # logging.info(f"{file_name}:{note_type}")
         if yb_file_name.__contains__('\r') or yb_file_name.__contains__('\n'):
             logging.warning(f"注意这个文件名 {yb_file_name}")
-            yb_file_name = yb_file_name.replace('\t', '').replace('\n', '')  # 原后缀路径
+            yb_file_name = yb_file_name.replace('\t', '').replace('\n', '').replace('\r', '')  # 原后缀路径
 
         if note_type == NoteTypeEnum.JSON:
             download_file_name = f'{os.path.splitext(yb_file_name)[0]}.json'
@@ -267,6 +268,10 @@ class YoudaoNotePull(object):
         :param modify_time:
         :return:
         """
+        local_filename = local_filename.replace('\r', '').replace('\n', '')
+        download_filename = download_filename.replace('\r', '').replace('\n', '')
+        local_dir = local_dir.replace('\r', '').replace('\n', '')
+        
         local_file_path = os.path.join(local_dir, local_filename).replace('\\', '/')
         download_file_path = os.path.join(local_dir, download_filename).replace('\\', '/')
         
@@ -278,7 +283,7 @@ class YoudaoNotePull(object):
         #     os.remove(local_file_path)
         try:
             self._pull_file(file_id, download_file_path, note_type)
-            tip = f"类型：{note_type}"
+            tip = f"类型：{note_type.name}"
             logging.info('{}「{}」{}'.format(file_action.value, local_file_path, tip))
 
             if platform.system() == "Windows":
@@ -288,35 +293,49 @@ class YoudaoNotePull(object):
 
         except Exception as error:
             logging.error(
-                '{}「{}」失败！请检查文件！错误提示：{}'.format(file_action.value, local_file_path, format(error)), error)
+                '{}「{}」失败！请检查文件！错误提示：{}'.format(file_action.value, local_file_path, format(error)))
+
+    # 有道云笔记中以附件形式存储的二进制文件扩展名
+    BINARY_SUFFIXES = {
+        '.audio', '.scan', '.docx', '.doc', '.xlsx', '.xls',
+        '.pptx', '.ppt', '.pdf', '.zip', '.rar', '.7z',
+        '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp',
+        '.mp3', '.mp4', '.wav', '.flac', '.aac', '.ogg',
+        '.txt', '.csv', '.html', '.htm', '.lxtable',
+    }
 
     def judge_type(self, file_id: str, file_name: str) -> NoteTypeEnum:
         """
         判断返回内容类型
         """
-        youdao_file_suffix = os.path.splitext(file_name)[1]  # 笔记后缀
-        note_type = NoteTypeEnum.OTHER
-        if youdao_file_suffix == ".note":
+        youdao_file_suffix = os.path.splitext(file_name)[1].lower()  # 笔记后缀
+        if youdao_file_suffix == ".note" or youdao_file_suffix == "":
             response = self.youdaonote_api.get_file_by_id(file_id)
-            content = response.content[:5]
-            if content.startswith(b'{"'):
-                note_type = NoteTypeEnum.JSON
-            else:            
-                is_xml = True if (content == b"<?xml" or response.content[:1] == b"<") else False
-                if is_xml:  # xml类型
-                    note_type = NoteTypeEnum.XML
-                else:
-                    logging.warning(f"文件后缀「{youdao_file_suffix}」 {file_name} 不识别，请检查！")
-        elif youdao_file_suffix == ".md":
-            note_type = NoteTypeEnum.MD
-        elif youdao_file_suffix == ".clip":
-            note_type = NoteTypeEnum.CLIP
-        elif youdao_file_suffix == ".mindmap":
-            note_type = NoteTypeEnum.MINDMAP
-        else:
-            logging.warning(f"文件后缀「{youdao_file_suffix}」 {file_name} 不识别，请检查！")
+            content = response.content
+            # 去除开头空白（包括空格、换行、tab、&nbsp;等）再判断格式
+            content_stripped = content.lstrip()
+            if content_stripped.startswith(b'{"'):
+                return NoteTypeEnum.JSON
+            # 检查是否为 XML/HTML：去除空白后以 < 开头
+            if content_stripped.startswith(b'<'):
+                return NoteTypeEnum.XML
+            if youdao_file_suffix == ".note":
+                # .note 后缀但非 JSON/XML，仍尝试下载保存
+                logging.warning(f"文件后缀「.note」 {file_name} 内容格式不识别，将按原始格式保存")
+                return NoteTypeEnum.OTHER
 
-        return note_type
+        if youdao_file_suffix == ".md":
+            return NoteTypeEnum.MD
+        if youdao_file_suffix == ".clip":
+            return NoteTypeEnum.CLIP
+        if youdao_file_suffix == ".mindmap":
+            return NoteTypeEnum.MINDMAP
+        if youdao_file_suffix in self.BINARY_SUFFIXES:
+            return NoteTypeEnum.BINARY
+
+        # 无后缀（可能是网页剪藏/书签）或其他未知格式，仍下载保存
+        logging.info(f"文件后缀「{youdao_file_suffix}」 {file_name} 按原始格式下载保存")
+        return NoteTypeEnum.OTHER
 
     def _pull_file(self, file_id, file_path, note_type):
         """
@@ -333,7 +352,7 @@ class YoudaoNotePull(object):
         new_file_path = ""
         
         if note_type == NoteTypeEnum.JSON:
-            new_file_path = YoudaoNoteConvert.covert_json_to_markdown(file_path,is_delete=True)
+            new_file_path = YoudaoNoteConvert.covert_json_to_markdown(file_path, is_delete=True)
         elif note_type == NoteTypeEnum.MD:
             YoudaoNoteConvert.markdown_filter(file_path)
             new_file_path = file_path
@@ -344,7 +363,44 @@ class YoudaoNotePull(object):
                 logging.info(f'{file_path} 笔记应该为 17 年以前新建，格式为 html，将转换为 Markdown ...')
                 new_file_path = YoudaoNoteConvert.covert_html_to_markdown(file_path)
             except Exception as e2:
-                logging.error(f'{file_path} 笔记转换 MarkDown 失败，将跳过', e2)
+                logging.error(f'{file_path} 笔记转换 MarkDown 失败，将跳过；错误提示：{format(e2)}')
+        elif note_type in (NoteTypeEnum.BINARY, NoteTypeEnum.CLIP, NoteTypeEnum.OTHER, NoteTypeEnum.MINDMAP):
+            # 二进制文件、剪藏、其他格式：已下载到原文件，无需额外转换
+            new_file_path = file_path
+            
+            # 处理 .audio 和 .scan 媒体附件下载
+            if file_path.endswith('.audio') or file_path.endswith('.scan'):
+                try:
+                    import json
+                    with open(file_path, 'rb') as f:
+                        data = json.load(f)
+                    
+                    media_folder = os.path.splitext(file_path)[0] + ('_audio' if file_path.endswith('.audio') else '_scan')
+                    if not os.path.exists(media_folder):
+                        os.makedirs(media_folder)
+                    
+                    if file_path.endswith('.audio'):
+                        records = data.get('recordList', [])
+                        for i, record in enumerate(records):
+                            record_id = record.get('recordID')
+                            if record_id:
+                                media_resp = self.youdaonote_api.get_file_by_id(record_id)
+                                media_path = os.path.join(media_folder, f"{os.path.basename(os.path.splitext(file_path)[0])}_{i+1}.mp3").replace('\\', '/')
+                                with open(media_path, 'wb') as mf:
+                                    mf.write(media_resp.content)
+                                logging.info(f"已下载附加音频: {media_path}")
+                    elif file_path.endswith('.scan'):
+                        images = data.get('imageList', [])
+                        for i, img in enumerate(images):
+                            img_id = img.get('OriginImageName')
+                            if img_id:
+                                media_resp = self.youdaonote_api.get_file_by_id(img_id)
+                                media_path = os.path.join(media_folder, f"{os.path.basename(os.path.splitext(file_path)[0])}_{i+1}.jpg").replace('\\', '/')
+                                with open(media_path, 'wb') as mf:
+                                    mf.write(media_resp.content)
+                                logging.info(f"已下载附加图片: {media_path}")
+                except Exception as e:
+                    logging.error(f"处理附加媒体文件时出错: {e}")
     
         # 迁移附件和图片
         file_suffix = os.path.splitext(new_file_path)[1]
@@ -381,9 +437,9 @@ class YoudaoNotePull(object):
         regex_symbol = re.compile(r'[<]')  # 符号： <
         # 删除特殊字符
         del_regex_symbol = re.compile(r'[\\/":\|\*\?#>]')  # 符号：\ / " : | * ? # >
+        # 去除 Windows 文件名中的非法控制字符
+        name = name.replace('\n', '').replace('\r', '').replace('\t', '')
         # 首尾的空格
-        name = name.replace('\n', '')
-        # 去除换行符
         name = name.strip()
         # 替换一些特殊符号
         name = regex_symbol.sub('_', name)
