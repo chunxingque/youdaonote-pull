@@ -1,1 +1,0 @@
-line segment point ideal math model no length width 0 gap

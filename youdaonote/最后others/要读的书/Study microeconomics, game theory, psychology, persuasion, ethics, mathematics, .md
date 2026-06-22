@@ -1,1 +1,0 @@
-Study microeconomics, game theory, psychology, persuasion, ethics, mathematics, and computers.

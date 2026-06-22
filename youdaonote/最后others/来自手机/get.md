@@ -1,1 +1,0 @@
-get box 的方式ocr

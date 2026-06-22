@@ -1,1 +1,0 @@
-玻尔兹曼机（Boltzmann machine）

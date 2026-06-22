@@ -1,1 +1,0 @@
-welcome to kunming 昆明市（每个字有板有眼）

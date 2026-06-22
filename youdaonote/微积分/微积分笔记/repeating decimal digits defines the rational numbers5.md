@@ -1,1 +1,0 @@
-why repeating decimal digits defines the rational numbers

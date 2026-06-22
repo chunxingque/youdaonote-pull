@@ -1,1 +1,0 @@
-虽然不是correct idealization，虽然可能不是那方面的绝对真理，但至少应该是相对真理，很有可能是good approximation

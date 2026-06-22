@@ -1,1 +1,0 @@
-chrome right close tab

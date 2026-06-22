@@ -1,1 +1,0 @@
-领英、indeed、seed、glassdoor，或者国内各大求职app专找外企，进去以后等外派的机会
