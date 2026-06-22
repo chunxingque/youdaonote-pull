@@ -1,0 +1,1 @@
+在 Coursera 之前，有一位斯坦福大学教授塞巴斯蒂安·特龙（Sebastian Thrun）创建了类似的在线教育公司 Udacity，他同时也是 Google X 实验室研究员。除此之外，今年四月创办的 2tor、哈佛大学和麻省理工学院合资成立的 edX、在旧金山成立的 University Now 等等，都不容小觑。

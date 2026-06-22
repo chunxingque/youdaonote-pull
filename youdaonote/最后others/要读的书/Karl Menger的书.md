@@ -1,0 +1,3 @@
+Kant felt a need to moderate the effects of Occam’s razor and thus created his own counter-razor: “The variety of beings should not rashly be diminished.”
+
+Karl Menger found mathematicians to be too parsimonious with regard to variables, so he formulated his Law Against Miserliness, which took one of two forms: “Entities must not be reduced to the point of inadequacy” and “It is vain to do with fewer what requires more.”

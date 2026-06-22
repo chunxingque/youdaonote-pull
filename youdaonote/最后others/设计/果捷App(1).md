@@ -1,0 +1,1 @@
+是否支持议价<div>价格</div><div>只想做个过客 &nbsp; －－－－ &nbsp;快牙</div><div><br></div><div>loading 页做特色介绍 &nbsp; &nbsp; feature &nbsp;不打白条 &nbsp;告别黑幕透明 &nbsp;线上担保交易／／／专业的农产品批发（公司目标）</div><div>地理位置</div><div>价格走势</div><div><br></div><div><br></div><div><br></div><div><br></div><div>发布采购单、就像发布租房请求、约车（数量、地区、价格、新鲜程度</div><div>一亩田 －－－ 买、卖、求、我</div><div><br></div><div><br></div><div><br></div>

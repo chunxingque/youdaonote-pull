@@ -1,0 +1,1 @@
+Until the day when [God](http://en.wikiquote.org/wiki/God "God") shall deign to [reveal](http://en.wikiquote.org/wiki/Reveal "Reveal") the [future](http://en.wikiquote.org/wiki/Future "Future") to man, all human wisdom is summed up in these two words,— "Wait and hope".

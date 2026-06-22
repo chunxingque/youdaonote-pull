@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+  <meta charset="UTF-8">
+  <title>有道云笔记</title>
+</head>
+<body>
+<script type="text/javascript">
+  let noteShareUrl = 'ynoteshare';
+  let groupShareUrl = 'coshare';
+  window.onload = function() {
+    const isYdoc = Boolean(getParameter('id'));
+    const isMobile = detectmob();
+    const dateVersion = new Date().getTime();
+    const xhr = new XMLHttpRequest();
+    const url = '//note.youdao.com/share/shareConfig.json?' + dateVersion;
+    xhr.open('GET', url);
+    xhr.responseType = 'json';
+
+    xhr.onload = function(e) {
+      if (this.status === 200) {
+        let response = xhr.response;
+        if (response && response.noteshare && response.noteshare.url) {
+          noteShareUrl = response.noteshare.url;
+        }
+        if (response && response.groupshare && response.groupshare.url) {
+          groupShareUrl = response.groupshare.url;
+        }
+        redirectToTarget(isYdoc, isMobile);
+      }
+    };
+
+    xhr.onerror = function() {
+      redirectToTarget(isYdoc, isMobile);
+    };
+
+    xhr.send();
+  };
+
+  function getParameter(paramName) {
+    const searchString = window.location.search.substring(1);
+    let i;
+    let val;
+    const params = searchString.split('&');
+
+    for (i = 0; i < params.length; i++) {
+      val = params[i].split('=');
+      if (val[0].toLowerCase() === paramName.toLowerCase()) {
+        return val[1].split('?')[0];
+      }
+    }
+    return null;
+  }
+  function detectmob() {
+    return navigator.userAgent.match(/Android/i)
+      || navigator.userAgent.match(/webOS/i)
+      || navigator.userAgent.match(/iPhone/i)
+      || navigator.userAgent.match(/iPad/i)
+      || navigator.userAgent.match(/BlackBerry/i)
+      || navigator.userAgent.match(/Windows Phone/i);
+  }
+  function redirectToTarget(isYdoc, isMobile) {
+    var search = location.search + (location.search ? '&' : '?') + '_time='+new Date().getTime()
+    window.location.href = '//share.note.youdao.com/' + (isYdoc ? noteShareUrl : groupShareUrl) + '/' + (isMobile ? 'mobile.html' : 'index.html')  + search + location.hash;
+  }
+</script>
+</body>
+</html>

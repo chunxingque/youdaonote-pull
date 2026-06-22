@@ -1,0 +1,1 @@
+人生trigger point
